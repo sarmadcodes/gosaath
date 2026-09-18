@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+android/build/
+android/app/build/
+android/app/.cxx/
+android/.gradle/
+ios/build/
+ios/Pods/
+*.keystore
+!debug.keystore

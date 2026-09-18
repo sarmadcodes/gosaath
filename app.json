@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "GoSaath",
+    "slug": "gosaath",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "gosaath",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F7F7F5",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#0F6E5C"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F6E5C",
+          "dark": { "backgroundColor": "#101312" }
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.gosaath.app"
+    },
+    "android": {
+      "package": "com.gosaath.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F6E5C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="461" height="96" viewBox="0 0 461 96" role="img" aria-label="GoSaath">
+  <title>GoSaath</title>
+  <rect width="96" height="96" rx="27.84" fill="#0F6E5C"/>
+  <g transform="rotate(-32 48 48)">
+    <rect x="18.24" y="45.36" width="59.52" height="5.28" rx="2.64" fill="#FFFFFF" opacity="0.45"/>
+    <circle cx="26.4" cy="48" r="8.16" fill="#FFFFFF"/>
+    <circle cx="69.6" cy="48" r="8.16" fill="#FFFFFF"/>
+  </g>
+  <text x="128" y="48"
+        font-family="Manrope, 'Manrope SemiBold', 'Segoe UI', system-ui, sans-serif"
+        font-size="75" font-weight="600"
+        fill="#14171A" dominant-baseline="central">GoSaath</text>
+</svg>
