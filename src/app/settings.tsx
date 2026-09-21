@@ -13,6 +13,7 @@ import { useMe } from "@/hooks/data";
 import { makeStyles, spacing, useTheme } from "@/theme";
 import { api } from "@/services";
 import { releasePushToken } from "@/hooks/use-push-notifications";
+import { bumpSessionEpoch } from "@/services/session-epoch";
 import { areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
 
@@ -51,6 +52,8 @@ export default function Settings() {
     // deliberately survives: the intro is about the product, not the account.
     await api.auth.logout();
     setConfirmLogout(false);
+    bumpSessionEpoch();
+    router.dismissAll();
     router.replace("/(auth)/login");
   }
 

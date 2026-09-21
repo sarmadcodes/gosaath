@@ -16,8 +16,8 @@ import { ContactActions } from "@/components/contact-actions";
 import { makeStyles, radius, spacing, useColors } from "@/theme";
 import { areaName } from "@/data/areas";
 import { campusById } from "@/data/institutions";
-import { useMatches, useMe } from "@/hooks/data";
-import { describeDayTimes, sortSchedule } from "@/utils/schedule";
+import { useCommute, useMatches, useMe } from "@/hooks/data";
+import { describeDayTimes, describeDays, sortSchedule } from "@/utils/schedule";
 import { WEEKDAYS } from "@/data/types";
 import type { CommuteMatch, Weekday } from "@/data/types";
 
@@ -89,7 +89,14 @@ function MatchBody({
   const styles = useStyles();
   const colors = useColors();
 
+  const { data: myCommute } = useCommute();
   const offering = match.intent === "offer" || match.intent === "both";
+  // Already offering seats on every day you match: they can request from
+  // their side, and sending you to re-enter your commute would be busywork.
+  const iOffer =
+    (myCommute?.intent === "offer" || myCommute?.intent === "both") &&
+    match.matchingDays.length > 0 &&
+    match.matchingDays.every((d) => myCommute.schedule.some((s) => s.day === d));
   const matching = new Set<Weekday>(match.matchingDays);
   const theirDays = new Set<Weekday>(match.schedule.map((s) => s.day));
   const total = match.schedule.length;
@@ -124,6 +131,19 @@ function MatchBody({
                 {match.user.firstName} has no seats listed right now.
               </Text>
             </>
+          ) : iOffer ? (
+            <>
+              <Button
+                label="View my commute"
+                variant="secondary"
+                block
+                onPress={() => router.push("/(tabs)/commute")}
+              />
+              <Text variant="caption" tone="tertiary" style={styles.footNote}>
+                You already offer seats on {describeDays(match.matchingDays)}.{" "}
+                {match.user.firstName} can request one from their matches.
+              </Text>
+            </>
           ) : (
             // They want a seat, not to give one. There is no invite in this
             // product, so the honest action is to offer seats on your own
@@ -132,7 +152,7 @@ function MatchBody({
               <Button
                 label="Offer seats on your commute"
                 block
-                onPress={() => router.push("/driver/offer")}
+                onPress={() => router.push(`/driver/offer?match=${match.id}`)}
               />
               <Text variant="caption" tone="tertiary" style={styles.footNote}>
                 {match.user.firstName} is looking for a ride. Offer seats and

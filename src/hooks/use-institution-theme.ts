@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { api } from "@/services";
 import { institutionById } from "@/data/institutions";
 import { useTheme } from "@/theme";
+import { useSessionEpoch } from "@/services/session-epoch";
 
 /**
  * Applies the signed-in user's institution accent app-wide.
@@ -14,6 +15,7 @@ import { useTheme } from "@/theme";
  */
 export function useInstitutionTheme() {
   const { setBrandColor } = useTheme();
+  const epoch = useSessionEpoch();
 
   useEffect(() => {
     let cancelled = false;
@@ -32,5 +34,5 @@ export function useInstitutionTheme() {
     return () => {
       cancelled = true;
     };
-  }, [setBrandColor]);
+  }, [setBrandColor, epoch]);
 }

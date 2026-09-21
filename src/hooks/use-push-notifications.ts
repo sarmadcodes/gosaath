@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useSessionEpoch } from "@/services/session-epoch";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -108,6 +109,8 @@ export async function releasePushToken(): Promise<void> {
  * only hands over the token and decides where a tap goes.
  */
 export function usePushNotifications() {
+  // Re-registers for whoever is signed in after an account switch.
+  const epoch = useSessionEpoch();
   useEffect(() => {
     let cancelled = false;
 
@@ -139,5 +142,5 @@ export function usePushNotifications() {
       cancelled = true;
       tapped.remove();
     };
-  }, []);
+  }, [epoch]);
 }

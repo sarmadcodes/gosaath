@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -13,13 +13,13 @@ import { Segmented } from "@/components/segmented";
 import { Text } from "@/components/text";
 import { ToggleRow } from "@/components/toggle-row";
 import { SkeletonForm } from "@/components/skeleton";
-import { useCommute, useMe } from "@/hooks/data";
+import { useCommute, useMatches, useMe, useVehicles } from "@/hooks/data";
 import { api } from "@/services";
-import type { User } from "@/data/types";
+import type { Commute, CommuteMatch, User, Vehicle } from "@/data/types";
 import { makeStyles, spacing } from "@/theme";
 import { areas } from "@/data/areas";
 import { campusById, communityLabel } from "@/data/institutions";
-import { applyToAll, describeSchedule } from "@/utils/schedule";
+import { applyToAll, describeDays, describeSchedule, sortSchedule } from "@/utils/schedule";
 import type { CommuteDirection, DaySchedule, VehicleType } from "@/data/types";
 
 /** Cars seat up to 7. A bike carries one pillion passenger. */
@@ -38,9 +38,13 @@ type Picker = "from" | "departure" | "seats" | null;
 
 export default function OfferSeats() {
   const styles = useStyles();
+  const { match: matchId } = useLocalSearchParams<{ match?: string }>();
   const { data: me } = useMe();
+  const { data: commute, loading: commuteLoading } = useCommute();
+  const { data: vehicles, loading: vehiclesLoading } = useVehicles();
+  const { data: matches, loading: matchesLoading } = useMatches();
 
-  if (!me) {
+  if (!me || commuteLoading || vehiclesLoading || (matchId && matchesLoading)) {
     return (
       <>
         <AppBar title="Offer seats" />
@@ -51,26 +55,67 @@ export default function OfferSeats() {
     );
   }
 
-  return <OfferSeatsForm me={me} />;
+  return (
+    <OfferSeatsForm
+      me={me}
+      commute={commute ?? null}
+      vehicles={vehicles ?? []}
+      match={matchId ? matches?.find((m) => m.id === matchId) : undefined}
+    />
+  );
 }
 
-function OfferSeatsForm({ me }: { me: User }) {
+/**
+ * Where the form starts: the commute you already have, and — when you came
+ * here from a match — the days you match on, with the times that made them
+ * match. Nobody should have to re-enter a timetable the app already knows.
+ */
+function initialSchedule(commute: Commute | null, match?: CommuteMatch) {
+  const base = commute?.schedule ?? [];
+  if (!match) {
+    return base.length > 0
+      ? base
+      : applyToAll(["Mon", "Tue", "Wed", "Thu", "Fri"], "7:30 AM", "5:30 PM");
+  }
+  const byDay = new Map(base.map((entry) => [entry.day, entry]));
+  for (const day of match.matchingDays) {
+    if (!byDay.has(day)) {
+      const theirs = match.schedule.find((entry) => entry.day === day);
+      if (theirs) byDay.set(day, theirs);
+    }
+  }
+  return sortSchedule([...byDay.values()]);
+}
+
+function OfferSeatsForm({
+  me,
+  commute,
+  vehicles,
+  match,
+}: {
+  me: User;
+  commute: Commute | null;
+  vehicles: Vehicle[];
+  match?: CommuteMatch;
+}) {
   const styles = useStyles();
 
-  const [vehicleType, setVehicleType] = useState<VehicleType>("car");
+  const current = vehicles.find((v) => v.id === commute?.vehicleId) ?? vehicles[0];
+  const [vehicleType, setVehicleType] = useState<VehicleType>(current?.type ?? "car");
   const [from, setFrom] = useState(
-    areas.find((a) => a.id === me.areaId)?.name ?? "",
+    areas.find((a) => a.id === (commute?.originAreaId ?? me.areaId))?.name ?? "",
   );
-  const [direction, setDirection] = useState<CommuteDirection>("both");
-  const [schedule, setSchedule] = useState<DaySchedule[]>(() =>
-    applyToAll(["Mon", "Tue", "Wed", "Thu", "Fri"], "7:30 AM", "5:30 PM"),
-  );
-  const [seats, setSeats] = useState("2");
-  const [contribution, setContribution] = useState("250");
-  const [womenOnly, setWomenOnly] = useState(false);
+  const [direction, setDirection] = useState<CommuteDirection>(commute?.direction ?? "both");
+  const [schedule, setSchedule] = useState<DaySchedule[]>(() => initialSchedule(commute, match));
+  const [seats, setSeats] = useState(String(commute?.seatsOffered || 2));
+  const [contribution, setContribution] = useState(String(commute?.contribution ?? 250));
+  const [womenOnly, setWomenOnly] = useState(commute?.womenOnly ?? false);
   const [picker, setPicker] = useState<Picker>(null);
 
-  const { data: commute } = useCommute();
+  // The server will not take an offer without a vehicle to offer seats in.
+  const vehicle =
+    vehicles.find((v) => v.id === commute?.vehicleId && v.type === vehicleType) ??
+    vehicles.find((v) => v.type === vehicleType);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -89,7 +134,7 @@ function OfferSeatsForm({ me }: { me: User }) {
       ? "Enter an amount, or 0 if you are not asking for anything."
       : undefined;
 
-  const valid = schedule.length > 0 && from.length > 0 && !contributionError;
+  const valid = schedule.length > 0 && from.length > 0 && !contributionError && Boolean(vehicle);
 
   /**
    * Offering seats is a property of the recurring commute, not a separate
@@ -106,6 +151,7 @@ function OfferSeatsForm({ me }: { me: User }) {
       originAreaId,
       schedule,
       direction,
+      vehicleId: vehicle?.id,
       seatsOffered: Number(seats) || 1,
       contribution: Number(contribution) || 0,
       womenOnly,
@@ -150,6 +196,16 @@ function OfferSeatsForm({ me }: { me: User }) {
       >
         {/* Language treats the user as a commuter with spare seats, not as a
             driver running a service. */}
+        {match ? (
+          <Card tone="inset">
+            <Text variant="bodySmall" tone="secondary">
+              {match.matchingDays.length > 0
+                ? `Pre-filled with the days you match ${match.user.firstName} on (${describeDays(match.matchingDays)}). Adjust anything before saving.`
+                : `Pre-filled from your commute. Adjust your days to line up with ${match.user.firstName}.`}
+            </Text>
+          </Card>
+        ) : null}
+
         <Text variant="body" tone="secondary">
           Share the seats you already have free and split the running cost with
           people from your campus.
@@ -168,6 +224,17 @@ function OfferSeatsForm({ me }: { me: User }) {
               { value: "bike", label: "Bike" },
             ]}
           />
+          {vehicle ? (
+            <Text variant="bodySmall" tone="secondary">
+              {vehicle.model} · {vehicle.plate}
+            </Text>
+          ) : (
+            <Button
+              label={`Add a ${vehicleType} first`}
+              variant="secondary"
+              onPress={() => router.push("/vehicles/edit")}
+            />
+          )}
         </View>
 
         <View style={styles.section}>

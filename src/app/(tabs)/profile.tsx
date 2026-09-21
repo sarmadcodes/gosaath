@@ -14,6 +14,27 @@ import { makeStyles, radius, spacing } from "@/theme";
 import { areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
 import { useMe } from "@/hooks/data";
+import { api, usingServer } from "@/services";
+import { releasePushToken } from "@/hooks/use-push-notifications";
+import { bumpSessionEpoch } from "@/services/session-epoch";
+
+/** Dev-only: the two seeded demo accounts (`npm run db:seed:demo`). */
+const DEMO_ACCOUNTS = [
+  { email: "ayesha.demo@szabist.pk", label: "Ayesha (finding a ride)" },
+  { email: "bilal.demo@szabist.pk", label: "Bilal (offering seats)" },
+] as const;
+const DEMO_PASSWORD = "GoSaathDemo2026";
+
+async function switchTo(email: string) {
+  await releasePushToken();
+  await api.auth.logout();
+  await api.auth.login(email, DEMO_PASSWORD);
+  // Unmount every screen and start again from the launch gate, so nothing
+  // the previous account loaded survives the switch.
+  bumpSessionEpoch();
+  router.dismissAll();
+  router.replace("/");
+}
 
 const badgeCopy: Record<string, string> = {
   none: "Not verified",
@@ -152,6 +173,26 @@ export default function ProfileRoute() {
           />
         </Card>
       </View>
+
+      {__DEV__ && usingServer ? (
+        <View style={styles.section}>
+          <SectionHeader title="Demo accounts" />
+          <Card padding="none">
+            {DEMO_ACCOUNTS.map((account, i) => (
+              <ListRow
+                key={account.email}
+                label={`Switch to ${account.label}`}
+                value={me?.email === account.email ? "Current" : undefined}
+                icon="refresh-cw"
+                last={i === DEMO_ACCOUNTS.length - 1}
+                onPress={
+                  me?.email === account.email ? undefined : () => void switchTo(account.email)
+                }
+              />
+            ))}
+          </Card>
+        </View>
+      ) : null}
     </Screen>
   );
 }
