@@ -224,11 +224,23 @@ and search experiences on that flag. The checklist mirrors
 - [ ] Brand colour sampled from the official logo
 - [ ] Both logo files uploaded and previewed at 34px
 - [ ] A named admin who will review badges
-- [ ] Enough signups that the first user is not alone
+- [ ] Enough demand that the first user is not alone *(advisory)*
 
-That last item is the one that gets skipped and the one that decides whether a
-launch works. A commuter who joins and finds nobody on their route learns the
-app does not work, and does not return.
+**As built**, the last two items needed rethinking, because registration
+refuses inactive institutions — so before launch an institution can have
+neither an admin nor a single signup:
+
+- **The admin** comes through an **admin invitation**, the one path allowed to
+  register into an inactive institution, and only for the invited address.
+- **Demand** is measured as the number of people who *requested* the
+  institution from the app. It is shown on the checklist but **does not block
+  activation** — blocking on it would make activation impossible. It is still
+  the item most worth reading: a commuter who joins and finds nobody on their
+  route learns the app does not work, and does not return.
+
+Logos, active campuses and the admin are **derived from the database**, not
+ticked; only the human judgements (contacted, domains confirmed, colour
+confirmed) are manual.
 
 **Institution requests** — what users submit from the app — land here as a
 queue, with a count of how many people asked for each. That queue is the
