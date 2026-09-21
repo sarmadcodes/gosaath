@@ -49,12 +49,19 @@ export default function RidesRoute() {
   );
 
   const { data: commute, loading, error, reload } = useCommute();
-  const { data: week = [] } = useCommuteWeek(commute?.id);
-  const { data: members = [] } = useCommuteMembers(commute?.id);
+  const { data: week = [], reload: reloadWeek } = useCommuteWeek(commute?.id);
+  const { data: members = [], reload: reloadMembers } = useCommuteMembers(commute?.id);
   // Two directions, kept apart on purpose: what people are asking of you is a
   // to-do list, what you have asked of them is a waiting list.
-  const { data: incoming = [], set: setIncoming } = useIncomingRequests();
+  const {
+    data: incoming = [],
+    set: setIncoming,
+    reload: reloadIncoming,
+  } = useIncomingRequests();
   const { data: sent = [] } = useSentRequests();
+  // One answer per request in flight: a second tap while the first is on its
+  // way is what produced "already answered".
+  const [answering, setAnswering] = useState<string | null>(null);
 
   async function respond(request: SeatRequest, action: "accept" | "decline") {
     // Removed straight away so the tap feels immediate, then put back if the
@@ -62,19 +69,34 @@ export default function RidesRoute() {
     // taken the last seat, or the request may already have been answered on
     // another device — and a row that vanishes while nothing happened is
     // worse than a slower one.
+    if (answering) return;
+    setAnswering(request.id);
     const before = incoming;
-    setIncoming(incoming.filter((r) => r.id !== request.id));
+    // Accepted stays on the list, marked as such; declined goes away.
+    setIncoming(
+      action === "accept"
+        ? incoming.map((r) => (r.id === request.id ? { ...r, status: "accepted" } : r))
+        : incoming.filter((r) => r.id !== request.id),
+    );
 
     try {
       await api.rides.respondToRequest(request.id, action);
+      // Seats taken and who is riding changed; show the server's truth.
+      reloadWeek();
+      reloadMembers();
+      reloadIncoming();
     } catch (err) {
       setIncoming(before);
+      // Most likely answered elsewhere; either way, re-sync with the server.
+      reloadIncoming();
       Alert.alert(
         action === "accept" ? "Could not accept" : "Could not decline",
         err instanceof Error
           ? err.message
           : "Something went wrong. Try again.",
       );
+    } finally {
+      setAnswering(null);
     }
   }
 
@@ -203,7 +225,7 @@ export default function RidesRoute() {
               <>
                 <SectionHeader
                   title="Asked to join your ride"
-                  caption="Seats you are offering. They are waiting on you."
+                  caption="People asking for a seat in your car."
                 />
                 {incoming.map((request) => (
                   <Card key={request.id} tone="ride" padding="regular">
@@ -221,19 +243,28 @@ export default function RidesRoute() {
                           : ""}
                       </Text>
                     </View>
-                    <View style={styles.requestActions}>
-                      <Button
-                        label="Decline"
-                        variant="tertiary"
-                        style={styles.flex}
-                        onPress={() => respond(request, "decline")}
-                      />
-                      <Button
-                        label="Accept"
-                        style={styles.flex}
-                        onPress={() => respond(request, "accept")}
-                      />
-                    </View>
+                    {request.status === "pending" ? (
+                      <View style={styles.requestActions}>
+                        <Button
+                          label="Decline"
+                          variant="tertiary"
+                          style={styles.flex}
+                          disabled={answering !== null}
+                          onPress={() => respond(request, "decline")}
+                        />
+                        <Button
+                          label="Accept"
+                          style={styles.flex}
+                          loading={answering === request.id}
+                          disabled={answering !== null && answering !== request.id}
+                          onPress={() => respond(request, "accept")}
+                        />
+                      </View>
+                    ) : (
+                      <View style={styles.requestMeta}>
+                        <Badge kind="verified" label="Accepted" />
+                      </View>
+                    )}
                   </Card>
                 ))}
               </>
@@ -243,19 +274,30 @@ export default function RidesRoute() {
               <>
                 <SectionHeader
                   title="Your requests"
-                  caption="Waiting on the other person."
+                  caption="Seats you have asked for."
                 />
                 {sent.map((request) => (
                   <Card key={request.id} padding="regular">
                     <PersonRow
                       user={request.user}
                       caption={request.destinationCampus}
-                      trailing={<Badge kind="pending" label="Waiting" />}
+                      trailing={
+                        request.status === "accepted" ? (
+                          <Badge kind="verified" label="Accepted" />
+                        ) : request.status === "declined" ? (
+                          <Badge kind="pending" label="Declined" />
+                        ) : (
+                          <Badge kind="pending" label="Waiting" />
+                        )
+                      }
                     />
                     <View style={styles.requestMeta}>
                       <Text variant="bodySmall" tone="secondary">
-                        You asked for a seat. Nothing is confirmed until they
-                        accept.
+                        {request.status === "accepted"
+                          ? "Confirmed. You are riding with them."
+                          : request.status === "declined"
+                            ? "They could not take you this time."
+                            : "You asked for a seat. Nothing is confirmed until they accept."}
                       </Text>
                     </View>
                   </Card>

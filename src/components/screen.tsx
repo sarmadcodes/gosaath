@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleProp,
   View,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { makeStyles, spacing, useColors } from "@/theme";
+import { usePullToRefresh } from "@/hooks/refresh-scope";
 
 export type ScreenProps = {
   children: ReactNode;
@@ -19,6 +21,8 @@ export type ScreenProps = {
   bleed?: boolean;
   background?: "background" | "surface";
   contentStyle?: StyleProp<ViewStyle>;
+  /** Pull to refresh. On by default: it reloads every fetch on the screen. */
+  refreshable?: boolean;
 };
 
 export const GUTTER = spacing.base;
@@ -35,7 +39,9 @@ export function Screen({
   bleed,
   background = "background",
   contentStyle,
+  refreshable = true,
 }: ScreenProps) {
+  const { refresh, refreshing } = usePullToRefresh();
   const styles = useStyles();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -57,6 +63,16 @@ export function Screen({
         contentStyle,
       ]}
       keyboardShouldPersistTaps="handled"
+      refreshControl={
+        refreshable ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
+          />
+        ) : undefined
+      }
       showsVerticalScrollIndicator={false}
     >
       {children}

@@ -21,7 +21,7 @@ export function useCommuteWeek(commuteId?: string) {
   return useAsync(
     () => (commuteId ? api.commuteWeek.week(commuteId) : Promise.resolve([])),
     [commuteId],
-    { refetchOnFocus: true },
+    { refetchOnFocus: true, pollMs: 30_000 },
   );
 }
 
@@ -29,11 +29,12 @@ export function useCommuteMembers(commuteId?: string) {
   return useAsync(
     () => (commuteId ? api.commuteWeek.members(commuteId) : Promise.resolve([])),
     [commuteId],
+    { refetchOnFocus: true, pollMs: 30_000 },
   );
 }
 
 export function useMatchSummary() {
-  return useAsync(() => api.matches.summary(), [], { refetchOnFocus: true });
+  return useAsync(() => api.matches.summary(), [], { refetchOnFocus: true, pollMs: 30_000 });
 }
 
 export function useMatches() {
@@ -58,12 +59,14 @@ export function useRide(id?: string) {
 export function useIncomingRequests() {
   return useAsync(() => api.rides.incomingRequests(), [], {
     refetchOnFocus: true,
+    pollMs: 15_000,
   });
 }
 
 export function useSentRequests() {
   return useAsync(() => api.rides.sentRequests(), [], {
     refetchOnFocus: true,
+    pollMs: 15_000,
   });
 }
 
@@ -84,6 +87,7 @@ export function useVehicles() {
 export function useNotifications() {
   return useAsync(() => api.notifications.list(), [], {
     refetchOnFocus: true,
+    pollMs: 15_000,
   });
 }
 
