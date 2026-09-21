@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -73,21 +73,48 @@ async function register() {
 }
 
 /**
+ * The token this device registered, if any.
+ *
+ * Module scope rather than a ref, because logging out happens on a different
+ * screen from the one that registered it and needs to reach the same value.
+ */
+let currentToken: string | null = null;
+
+/**
+ * Hands the token back before signing out.
+ *
+ * A phone gets passed around. Without this the previous account keeps
+ * receiving notifications on a device that is no longer theirs — which is a
+ * privacy problem, not just a stale badge.
+ *
+ * Never throws: failing to unregister must not block somebody from signing
+ * out, which is the one action they may be trying urgently.
+ */
+export async function releasePushToken(): Promise<void> {
+  if (!currentToken) return;
+  const token = currentToken;
+  currentToken = null;
+  try {
+    await api.notifications.unregisterPushToken(token);
+  } catch {
+    // The server will retire it on the next failed delivery anyway.
+  }
+}
+
+/**
  * Registers this device for push and routes taps.
  *
  * Mounted once at the root. Delivery itself is a backend concern — this side
  * only hands over the token and decides where a tap goes.
  */
 export function usePushNotifications() {
-  const token = useRef<string | null>(null);
-
   useEffect(() => {
     let cancelled = false;
 
     register()
       .then(async (next) => {
         if (cancelled || !next) return;
-        token.current = next;
+        currentToken = next;
         await api.notifications.registerPushToken(
           next,
           Platform.OS === "ios" ? "ios" : "android",

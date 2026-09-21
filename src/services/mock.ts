@@ -68,6 +68,8 @@ let requests: SeatRequest[] = [];
 let notifications: AppNotification[] = [];
 let blocked: PublicUser[] = [];
 let sent: SeatRequest[] = [];
+/** Ride ids already asked about, so a duplicate request is refused. */
+let sentRideIds = new Set<string>();
 let pendingRegistration: RegisterInput | null = null;
 
 /**
@@ -87,6 +89,7 @@ function resetState() {
   vehicles = [];
   requests = s.incomingRequests ? [...seatRequests] : [];
   sent = [];
+  sentRideIds = new Set();
   notifications = s.notifications ? [...seedNotifications] : [];
   blocked = [];
 }
@@ -491,24 +494,52 @@ export const mockApi: Api = {
     async requestSeat(rideId, seats) {
       await delay();
       const ride = rideListings.find((r) => r.id === rideId);
+      if (!ride) throw new Error("That ride was not found.");
+
+      // The same refusals the real backend applies. A mock that accepts
+      // everything trains the UI against behaviour that does not exist, and
+      // the error states then get discovered in production.
+      if (ride.driver.id === activeUser().id) {
+        throw new Error("That is your own ride.");
+      }
+      if (sentRideIds.has(rideId)) {
+        throw new Error("You have already asked for a seat on this ride.");
+      }
+      if (seats > ride.seatsAvailable) {
+        throw new Error("There are not that many seats left.");
+      }
+
       const request: SeatRequest = {
         id: `req-${Date.now()}`,
-        user: { id: activeUser().id, firstName: activeUser().name.split(" ")[0]!, verified: true },
-        originArea: ride?.originArea ?? "",
-        destinationCampus: ride?.destinationCampus ?? "",
-        schedule: ride?.schedule ?? [],
-        direction: ride?.direction ?? "both",
+        user: {
+          id: activeUser().id,
+          firstName: activeUser().name.split(" ")[0]!,
+          verified: true,
+        },
+        originArea: ride.originArea,
+        destinationCampus: ride.destinationCampus,
+        schedule: ride.schedule,
+        direction: ride.direction,
         seats,
-        contribution: ride?.contribution ?? 0,
+        contribution: ride.contribution,
         status: "pending",
       };
+
+      // Kept beside the list rather than on the request: `SeatRequest` is the
+      // client contract, and the mock has no business widening it.
+      sentRideIds.add(rideId);
       sent = [...sent, request];
       return request;
     },
 
     async incomingRequests() {
       await guard(250);
-      return requests.filter((r) => r.status === "pending");
+      // Pending and accepted, matching the server: an answered request stays
+      // visible briefly so the list does not appear to swallow what was just
+      // acted on.
+      return requests.filter(
+        (r) => r.status === "pending" || r.status === "accepted",
+      );
     },
 
     async sentRequests() {
@@ -518,6 +549,19 @@ export const mockApi: Api = {
 
     async respondToRequest(requestId, action) {
       await delay(250);
+      const existing = requests.find((r) => r.id === requestId);
+      if (!existing) throw new Error("That request was not found.");
+
+      // pending is the only answerable state. A declined request must never
+      // become accepted by a second tap — the rule the server enforces with a
+      // guarded update.
+      if (existing.status !== "pending") {
+        throw new Error("That request has already been answered.");
+      }
+
+      // Capacity is deliberately not modelled here: the sample incoming
+      // requests are not tied to a listing, and inventing an arithmetic the
+      // server does differently would be worse than leaving it out.
       requests = requests.map((r) =>
         r.id === requestId
           ? { ...r, status: action === "accept" ? "accepted" : "declined" }

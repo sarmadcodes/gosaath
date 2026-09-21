@@ -12,6 +12,7 @@ import { ToggleRow } from "@/components/toggle-row";
 import { useMe } from "@/hooks/data";
 import { makeStyles, spacing, useTheme } from "@/theme";
 import { api } from "@/services";
+import { releasePushToken } from "@/hooks/use-push-notifications";
 import { areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
 
@@ -41,6 +42,11 @@ export default function Settings() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function logout() {
+    // Hand the push token back first. A phone gets passed around, and leaving
+    // it registered means the previous account keeps being notified on a
+    // device that is no longer theirs.
+    await releasePushToken();
+
     // Clears the session and anything cached against it. The onboarding flag
     // deliberately survives: the intro is about the product, not the account.
     await api.auth.logout();

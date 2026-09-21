@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -57,8 +57,25 @@ export default function RidesRoute() {
   const { data: sent = [] } = useSentRequests();
 
   async function respond(request: SeatRequest, action: "accept" | "decline") {
+    // Removed straight away so the tap feels immediate, then put back if the
+    // server refuses. Accepting can genuinely fail — somebody else may have
+    // taken the last seat, or the request may already have been answered on
+    // another device — and a row that vanishes while nothing happened is
+    // worse than a slower one.
+    const before = incoming;
     setIncoming(incoming.filter((r) => r.id !== request.id));
-    await api.rides.respondToRequest(request.id, action);
+
+    try {
+      await api.rides.respondToRequest(request.id, action);
+    } catch (err) {
+      setIncoming(before);
+      Alert.alert(
+        action === "accept" ? "Could not accept" : "Could not decline",
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Try again.",
+      );
+    }
   }
 
   if (loading) {

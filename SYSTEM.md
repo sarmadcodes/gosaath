@@ -29,6 +29,20 @@ A user sets up their commute once ("I reach SZABIST Clifton by 8:00 from
 Gulshan, Mon–Fri"). The app finds other people at the same campus whose
 timetable overlaps. That's the product.
 
+### Known gap: `womenOnly` cannot currently be enforced
+
+The commute form, the ride listing and the preferences screen all carry a
+women-only flag, but **the system stores no gender for anybody** — not on
+`User`, not anywhere in the contract.
+
+The backend therefore pairs the flag symmetrically: a women-only commute only
+ever meets another women-only commute. That under-matches rather than
+over-matches, which is the safer direction, but it is **not a guarantee** and
+must not be presented in the UI as one.
+
+Resolving it is a product decision, not a technical one: collecting gender
+changes what this app holds about people.
+
 ### Hard rules — do not "improve" these
 
 These came from the product owner explicitly. If a ticket seems to ask for one
@@ -609,6 +623,21 @@ match surface you to them.
 Car or bike. **One photo** showing the front and the plate.
 
 ### 5.7 Notifications
+
+**The in-app list is the source of truth; push is a best-effort nudge.** The
+server writes the notification row and awaits it, then dispatches the push
+without awaiting — a driver tapping Accept must not wait on Expo, and a push
+provider having a bad afternoon must not turn an accepted seat into a failed
+request. A push that never arrives loses a nudge, not the notification.
+
+`AppNotification.time` is a phrase computed server-side — "18 min ago",
+"Yesterday" — the same choice as `ProximityEstimate.label`. The client renders
+it verbatim so every screen says the same thing.
+
+Push tokens are keyed on the **token**, not the user: a phone gets passed
+around, and signing in on a shared device reassigns it rather than leaving the
+previous account notified. `unregisterPushToken` is called on logout for the
+same reason.
 
 Ten `NotificationKind`s: `seatRequest`, `requestAccepted`, `requestDeclined`,
 `tomorrowCommute`, `driverUnavailable`, `replacementAvailable`, `rideReminder`,
