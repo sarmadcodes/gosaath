@@ -70,6 +70,19 @@ let blocked: PublicUser[] = [];
 let sent: SeatRequest[] = [];
 /** Ride ids already asked about, so a duplicate request is refused. */
 let sentRideIds = new Set<string>();
+
+/**
+ * Whose number the signed-in user may see.
+ *
+ * SYSTEM.md 4.5.3: only once a seat request between the two has been
+ * accepted. Mirrors the server, so developing against the mock cannot teach a
+ * screen a rule the real backend does not follow.
+ */
+function mayContact(userId: string) {
+  return [...requests, ...sent].some(
+    (r) => r.status === "accepted" && r.user.id === userId,
+  );
+}
 let pendingRegistration: RegisterInput | null = null;
 
 /**
@@ -429,7 +442,9 @@ export const mockApi: Api = {
             ...m,
             rideId: listing?.id,
             seatsTaken,
-            contactPhone: CONTACT_NUMBERS[m.user.id],
+            ...(mayContact(m.user.id)
+              ? { contactPhone: CONTACT_NUMBERS[m.user.id] }
+              : {}),
             ...(mine && theirArea
               ? { proximity: estimateBetween(mine, theirArea.id) }
               : {}),

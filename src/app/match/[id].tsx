@@ -192,12 +192,23 @@ function MatchBody({
           </View>
         </Card>
 
-        {/* Reachable because you are matched. There is no in-app messaging,
-            so this is how the practical details actually get sorted. */}
-        <ContactActions
-          firstName={match.user.firstName}
-          phone={match.contactPhone}
-        />
+        {/* Numbers are exchanged once a seat request is accepted, never
+            merely because two timetables overlap. There is no in-app
+            messaging, so from that point the phone is how the practical
+            details get sorted. */}
+        {match.contactPhone ? (
+          <ContactActions
+            firstName={match.user.firstName}
+            phone={match.contactPhone}
+          />
+        ) : (
+          <Card tone="inset">
+            <Text variant="bodySmall" tone="secondary">
+              You will be able to call or message {match.user.firstName} once a
+              seat request between you is accepted.
+            </Text>
+          </Card>
+        )}
 
         {/* Area to campus, never a pin on a home. The route says whether the
             commute is compatible, which is all either side needs. */}
