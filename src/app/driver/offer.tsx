@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -323,20 +324,22 @@ function OfferSeatsForm({
           </Card>
         </View>
 
-        <View style={styles.section}>
-          <SectionHeader title="Who can join" />
-          <Card padding="none">
-            <ToggleRow
-              label="Women only"
-              caption="Only women can request a seat"
-              icon="users"
-              accent="womenOnly"
-              value={womenOnly}
-              onChange={setWomenOnly}
-              last
-            />
-          </Card>
-        </View>
+        {WOMEN_ONLY_ENABLED ? (
+          <View style={styles.section}>
+            <SectionHeader title="Who can join" />
+            <Card padding="none">
+              <ToggleRow
+                label="Women only"
+                caption="Only women can request a seat"
+                icon="users"
+                accent="womenOnly"
+                value={womenOnly}
+                onChange={setWomenOnly}
+                last
+              />
+            </Card>
+          </View>
+        ) : null}
 
         <Card tone="inset">
           <Text variant="bodySmall" tone="secondary">

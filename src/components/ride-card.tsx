@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { Avatar } from "@/components/avatar";
 import { Badge } from "@/components/badge";
 import { Card } from "@/components/card";
@@ -71,7 +72,7 @@ export function RideCard({ ride, onPress }: RideCardProps) {
         </Text>
       </View>
 
-      {ride.womenOnly ? (
+      {WOMEN_ONLY_ENABLED && ride.womenOnly ? (
         <View style={styles.tags}>
           <Badge kind="womenOnly" />
         </View>

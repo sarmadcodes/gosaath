@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -157,14 +158,16 @@ function FindRideForm({ me }: { me: User }) {
           <View style={styles.section}>
             <SectionHeader title="Narrow it down" />
             <Card padding="none">
-              <ToggleRow
-                label="Women only"
-                caption="Match with women drivers and passengers"
-                icon="users"
-                accent="womenOnly"
-                value={womenOnly}
-                onChange={setWomenOnly}
-              />
+              {WOMEN_ONLY_ENABLED ? (
+                <ToggleRow
+                  label="Women only"
+                  caption="Match with women drivers and passengers"
+                  icon="users"
+                  accent="womenOnly"
+                  value={womenOnly}
+                  onChange={setWomenOnly}
+                />
+              ) : null}
               <ToggleRow
                 label="Cars only"
                 caption="Hide bike offers"

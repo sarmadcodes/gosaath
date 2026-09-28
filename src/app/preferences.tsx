@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Card } from "@/components/card";
 import { Input } from "@/components/input";
@@ -66,14 +67,16 @@ export default function Preferences() {
         <View style={styles.section}>
           <SectionHeader title="Finding a ride" />
           <Card padding="none">
-            <ToggleRow
-              label="Women only"
-              caption="Match with women drivers and passengers"
-              icon="users"
-              accent="womenOnly"
-              value={prefs.womenOnly}
-              onChange={(v) => update({ womenOnly: v })}
-            />
+            {WOMEN_ONLY_ENABLED ? (
+              <ToggleRow
+                label="Women only"
+                caption="Match with women drivers and passengers"
+                icon="users"
+                accent="womenOnly"
+                value={prefs.womenOnly}
+                onChange={(v) => update({ womenOnly: v })}
+              />
+            ) : null}
             <ToggleRow
               label="Verified commuters only"
               caption="Only people who uploaded ID for the badge"
@@ -119,14 +122,16 @@ export default function Preferences() {
         <View style={styles.section}>
           <SectionHeader title="Offering seats" />
           <Card padding="none">
-            <ToggleRow
-              label="Women passengers only"
-              caption="Only women can request a seat from you"
-              icon="users"
-              accent="womenOnly"
-              value={prefs.womenOnly}
-              onChange={(v) => update({ womenOnly: v })}
-            />
+            {WOMEN_ONLY_ENABLED ? (
+              <ToggleRow
+                label="Women passengers only"
+                caption="Only women can request a seat from you"
+                icon="users"
+                accent="womenOnly"
+                value={prefs.womenOnly}
+                onChange={(v) => update({ womenOnly: v })}
+              />
+            ) : null}
             <ToggleRow
               label="My campus only"
               caption="Hide requests from people at other institutions"

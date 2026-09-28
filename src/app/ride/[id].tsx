@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Badge } from "@/components/badge";
 import { Button } from "@/components/button";
@@ -168,7 +169,7 @@ export default function RideDetails() {
           </Card>
         </View>
 
-        {ride.womenOnly ? (
+        {WOMEN_ONLY_ENABLED && ride.womenOnly ? (
           <Card tone="inset">
             <View style={styles.row}>
               <Feather name="users" size={16} color={colors.womenOnly} />

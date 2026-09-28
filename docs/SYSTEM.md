@@ -90,7 +90,15 @@ optional verified badge**. Nothing else is exposed, ever.
 - **Institution email + OTP** is the account requirement. That is the real check.
 - **The verified badge is optional** — upload a student/employee card, an admin
   reviews it. The document is never public; only the badge is.
-- Women-only preference, reporting, blocking.
+- Reporting and blocking.
+- **Women-only: withdrawn from the product until gender can be verified.**
+  The preference exists in the data model and the matching engine honours it,
+  but nothing establishes that a person ticking it is a woman — no gender is
+  collected or checked. A "Women only" badge reads as a guarantee, and one the
+  system cannot enforce is worse than no option at all. The controls are hidden
+  behind `WOMEN_ONLY_ENABLED` in `src/data/flags.ts`; switch it on once gender
+  is established at signup or confirmed through the badge review that already
+  exists.
 
 The old four-check verification (CNIC, institution, licence, vehicle) was
 **removed**.

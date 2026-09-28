@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -279,20 +280,22 @@ function CreateCommuteForm({ me }: { me: User }) {
             </Card>
           </View>
 
-          <View style={styles.section}>
-            <SectionHeader title="Preferences" />
-            <Card padding="none">
-              <ToggleRow
-                label="Women only"
-                caption="Match with women drivers and passengers"
-                icon="users"
-                accent="womenOnly"
-                value={womenOnly}
-                onChange={setWomenOnly}
-                last
-              />
-            </Card>
-          </View>
+          {WOMEN_ONLY_ENABLED ? (
+            <View style={styles.section}>
+              <SectionHeader title="Preferences" />
+              <Card padding="none">
+                <ToggleRow
+                  label="Women only"
+                  caption="Match with women drivers and passengers"
+                  icon="users"
+                  accent="womenOnly"
+                  value={womenOnly}
+                  onChange={setWomenOnly}
+                  last
+                />
+              </Card>
+            </View>
+          ) : null}
 
           {error ? (
             <Text variant="bodySmall" tone="error">
