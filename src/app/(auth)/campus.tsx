@@ -8,11 +8,10 @@ import { Card } from "@/components/card";
 import { Screen } from "@/components/screen";
 import { Text } from "@/components/text";
 import { makeStyles, MIN_TOUCH_TARGET, radius, spacing, useColors } from "@/theme";
-import {
-  campusesFor,
-  institutionById,
-  NEEDS_REAL_CAMPUS_DATA,
-} from "@/data/institutions";
+import { institutionById, NEEDS_REAL_CAMPUS_DATA } from "@/data/institutions";
+import { useCampuses } from "@/hooks/data";
+import { ErrorState } from "@/components/error-state";
+import { SkeletonCard } from "@/components/skeleton";
 import { useSignup } from "@/state/signup";
 
 export default function CampusScreen() {
@@ -23,7 +22,14 @@ export default function CampusScreen() {
   const institution = draft.institutionId
     ? institutionById(draft.institutionId)
     : undefined;
-  const campuses = draft.institutionId ? campusesFor(draft.institutionId) : [];
+  // From the server: a campus an admin adds has to appear here without an app
+  // release. The local registry is kept for the logo and accent only.
+  const {
+    data: campuses = [],
+    loading,
+    error,
+    reload,
+  } = useCampuses(draft.institutionId);
   const [selected, setSelected] = useState<string | undefined>(draft.campusId);
 
   function choose(campusId: string) {
@@ -38,6 +44,18 @@ export default function CampusScreen() {
     NEEDS_REAL_CAMPUS_DATA &&
     campuses.length === 1 &&
     campuses[0]?.name === "Main Campus";
+
+  if (loading || error) {
+    return (
+      <>
+        <AppBar
+          title="Select your campus"
+          subtitle={institution?.shortName ?? institution?.name}
+        />
+        <Screen>{error ? <ErrorState onRetry={reload} /> : <SkeletonCard lines={3} />}</Screen>
+      </>
+    );
+  }
 
   return (
     <>

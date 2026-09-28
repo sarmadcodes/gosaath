@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -17,44 +17,89 @@ import {
   useTheme,
 } from "@/theme";
 import { InstitutionLogo } from "@/components/institution-logo";
-import {
-  campusesFor,
-  isSingleInstitutionLaunch,
-  launchInstitution,
-  searchInstitutions,
-} from "@/data/institutions";
+import { useCampuses, useInstitutionSearch } from "@/hooks/data";
+import { ErrorState } from "@/components/error-state";
+import { SkeletonCard } from "@/components/skeleton";
 import { useSignup } from "@/state/signup";
 import type { Institution } from "@/data/types";
 
 export default function InstitutionScreen() {
   const { draft, update } = useSignup();
   const { setBrandColor } = useTheme();
+  const [query, setQuery] = useState("");
+  // The server decides which institutions exist and are open. Shipping that
+  // list inside the app meant an institution activated by an admin stayed
+  // invisible until the next release.
+  const {
+    data: institutions = [],
+    loading,
+    error,
+    reload,
+  } = useInstitutionSearch(query, draft.institutionType);
+  const [chosen, setChosen] = useState<Institution | undefined>();
+  const { data: chosenCampuses } = useCampuses(chosen?.id);
 
   function choose(institution: Institution) {
     // The app takes on the institution's colour from here on, so the rest of
     // registration already looks like the user's own campus.
     setBrandColor(institution.brandColor);
 
+    // Its campuses decide the next screen, and they come from the server too.
+    // Setting it here rather than navigating immediately lets the effect below
+    // skip a campus screen that would only ever offer one option.
+    update({ institutionId: institution.id, campusId: undefined });
+    setChosen(institution);
+  }
+
+  useEffect(() => {
+    if (!chosen || !chosenCampuses) return;
     // Asking someone to pick from a list of one is a tap that teaches nothing.
     // The campus is confirmed on the account summary instead.
-    const campuses = campusesFor(institution.id);
-    if (campuses.length === 1) {
-      update({ institutionId: institution.id, campusId: campuses[0]!.id });
+    if (chosenCampuses.length === 1) {
+      update({ institutionId: chosen.id, campusId: chosenCampuses[0]!.id });
       router.push("/(auth)/register");
-      return;
+    } else {
+      router.push("/(auth)/campus");
     }
+    setChosen(undefined);
+  }, [chosen, chosenCampuses, update]);
 
-    update({ institutionId: institution.id, campusId: undefined });
-    router.push("/(auth)/campus");
+  if (loading) {
+    return (
+      <>
+        <AppBar title="Where do you study?" />
+        <Screen>
+          <SkeletonCard lines={2} />
+        </Screen>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <AppBar title="Where do you study?" />
+        <Screen>
+          <ErrorState onRetry={reload} />
+        </Screen>
+      </>
+    );
   }
 
   // GoSaath launches at one institution. Asking someone to search a list of
   // one is friction that also makes the product look emptier than it is.
-  if (isSingleInstitutionLaunch && launchInstitution) {
-    return <SingleInstitution institution={launchInstitution} onChoose={choose} />;
+  if (institutions.length === 1 && query === "") {
+    return <SingleInstitution institution={institutions[0]!} onChoose={choose} />;
   }
 
-  return <InstitutionSearch type={draft.institutionType} onChoose={choose} />;
+  return (
+    <InstitutionSearch
+      results={institutions}
+      query={query}
+      onQueryChange={setQuery}
+      onChoose={choose}
+    />
+  );
 }
 
 /**
@@ -129,17 +174,18 @@ function SingleInstitution({
  * the right screen the moment a second institution is activated.
  */
 function InstitutionSearch({
-  type,
+  results,
+  query,
+  onQueryChange,
   onChoose,
 }: {
-  type?: Institution["type"];
+  results: Institution[];
+  query: string;
+  onQueryChange: (next: string) => void;
   onChoose: (institution: Institution) => void;
 }) {
   const styles = useStyles();
   const colors = useColors();
-  const [query, setQuery] = useState("");
-
-  const results = useMemo(() => searchInstitutions(query, type), [query, type]);
 
   return (
     <>
@@ -150,7 +196,7 @@ function InstitutionSearch({
           icon="search"
           placeholder="Search universities, colleges or schools"
           value={query}
-          onChangeText={setQuery}
+          onChangeText={onQueryChange}
           autoCapitalize="none"
           autoCorrect={false}
         />

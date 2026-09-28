@@ -1,13 +1,32 @@
 import { useAsync } from "@/hooks/use-async";
 import { api } from "@/services";
 import type { RideSearch } from "@/services";
-import type { Weekday } from "@/data/types";
+import type { InstitutionType, Weekday } from "@/data/types";
 
 /**
  * Domain hooks. Screens use these rather than calling `api` directly, so the
  * fetch shape for a given piece of data is defined once and every screen that
  * shows it stays consistent.
  */
+
+/**
+ * The institutions and campuses a person may register into.
+ *
+ * The server is the source of truth for WHICH exist and are active — an
+ * institution activated by an admin has to appear here without an app
+ * release. The local registry in `@/data/institutions` stays, but only for
+ * presentation: logos and the accent colour.
+ */
+export function useInstitutionSearch(query: string, type?: InstitutionType) {
+  return useAsync(() => api.institutions.search(query, type), [query, type]);
+}
+
+export function useCampuses(institutionId?: string) {
+  return useAsync(
+    () => (institutionId ? api.institutions.campuses(institutionId) : Promise.resolve([])),
+    [institutionId],
+  );
+}
 
 export function useMe() {
   return useAsync(() => api.me.get(), []);
