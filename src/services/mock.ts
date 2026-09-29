@@ -310,6 +310,17 @@ export const mockApi: Api = {
       if (session) await persist({ ...session, user });
       return user;
     },
+    async deleteAccount(password: string) {
+      await delay();
+      // The mock has one account and one password; the point is that the
+      // screen has to ask for it and handle being told it is wrong.
+      if (!password) throw new Error("Enter your password to continue.");
+      commute = null;
+      requests = [];
+      sent = [];
+      await clearSessionData();
+      session = null;
+    },
   },
 
   commutes: {

@@ -403,6 +403,11 @@ export const httpApi: Api = {
         }),
       );
     },
+    async deleteAccount(password: string) {
+      await authed("DELETE", "/me", { password });
+      // Nothing to come back to, so the local session goes with it.
+      await saveSession(null);
+    },
     async removeInstitution(institutionId) {
       return userIn(
         await authed<User>("DELETE", `/me/institutions/${await out("institutions", institutionId)}`),

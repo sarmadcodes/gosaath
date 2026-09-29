@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Input } from "@/components/input";
 import { ListRow } from "@/components/list-row";
 import { Screen } from "@/components/screen";
 import { SectionHeader } from "@/components/section-header";
@@ -41,6 +42,9 @@ export default function Settings() {
   const [hideArea, setHideArea] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function logout() {
     // Hand the push token back first. A phone gets passed around, and leaving
@@ -55,6 +59,28 @@ export default function Settings() {
     bumpSessionEpoch();
     router.dismissAll();
     router.replace("/(auth)/login");
+  }
+
+  async function deleteAccount() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      // The push token goes first, as on logout: this device must stop
+      // receiving anything for an account that no longer exists.
+      await releasePushToken();
+      await api.me.deleteAccount(deletePassword);
+      bumpSessionEpoch();
+      setConfirmDelete(false);
+      router.dismissAll();
+      router.replace("/(auth)/login");
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "We could not delete your account.",
+      );
+    } finally {
+      setDeleting(false);
+      setDeletePassword("");
+    }
   }
 
   return (
@@ -285,14 +311,27 @@ export default function Settings() {
         visible={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         title="Delete your account?"
-        caption="Your commute group will be told you have left. This cannot be undone."
+        caption="Your commute stops, seats you are holding are given back, and your group will be told you have left. Reports made about you are kept, without your name. This cannot be undone."
       >
         <View style={styles.sheetActions}>
+          {/* Asked for again because this cannot be undone: an unlocked phone
+              on a table should not be enough to close somebody's account. */}
+          <Input
+            label="Your password"
+            icon="lock"
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            secureTextEntry
+            autoCapitalize="none"
+            error={deleteError ?? undefined}
+          />
           <Button
             label="Delete my account"
             variant="destructive"
             block
-            onPress={() => setConfirmDelete(false)}
+            loading={deleting}
+            disabled={deletePassword.length === 0}
+            onPress={deleteAccount}
           />
           <Button
             label="Keep my account"
