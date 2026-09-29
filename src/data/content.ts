@@ -86,6 +86,9 @@ export const rideListings: RideListing[] = [
     driver: ahmed,
     vehicleType: "car",
     vehicleModel: "Toyota Corolla GLi",
+    // Masked by default, as a browsing viewer sees it. See maskPlate.
+    vehiclePlate: "BKT-•••",
+    plateVisibility: "masked",
     originArea: "DHA Phase 5",
     destinationCampus: "SZABIST Clifton Campus",
     schedule: [
@@ -107,6 +110,9 @@ export const rideListings: RideListing[] = [
     driver: hina,
     vehicleType: "car",
     vehicleModel: "Suzuki Cultus VXL",
+    // Masked by default, as a browsing viewer sees it. See maskPlate.
+    vehiclePlate: "AXB-•••",
+    plateVisibility: "masked",
     originArea: "Clifton",
     destinationCampus: "SZABIST Clifton Campus",
     // Mixed timetable, so the ride card has to say "times vary" rather than
@@ -128,6 +134,9 @@ export const rideListings: RideListing[] = [
     driver: danish,
     vehicleType: "bike",
     vehicleModel: "Honda CG 125",
+    // Masked by default, as a browsing viewer sees it. See maskPlate.
+    vehiclePlate: "KHI-•••",
+    plateVisibility: "masked",
     originArea: "DHA Phase 2",
     destinationCampus: "SZABIST Clifton Campus",
     schedule: [

@@ -166,6 +166,18 @@ export default function RideDetails() {
               </Text>
               <Badge kind={ride.vehicleType} />
             </View>
+            {/* Masked while browsing, in full once your seat is confirmed —
+                which is when it matters, at the kerb. */}
+            {ride.vehiclePlate ? (
+              <View style={styles.plate}>
+                <Text variant="bodyLarge">{ride.vehiclePlate}</Text>
+                <Text variant="caption" tone="tertiary">
+                  {ride.plateVisibility === "full"
+                    ? "Check this plate before you get in."
+                    : "The full number plate appears once your seat is accepted."}
+                </Text>
+              </View>
+            ) : null}
           </Card>
         </View>
 
@@ -225,6 +237,10 @@ const useStyles = makeStyles((c) => ({
   },
   costNote: {
     marginTop: spacing.sm,
+  },
+  plate: {
+    marginTop: spacing.md,
+    gap: spacing.xs,
   },
   flex: {
     flex: 1,
