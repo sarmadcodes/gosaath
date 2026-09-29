@@ -14,6 +14,7 @@ import { Text } from "@/components/text";
 import { makeStyles, radius, spacing, useColors } from "@/theme";
 import { SkeletonForm } from "@/components/skeleton";
 import { api } from "@/services";
+import { uploadFile } from "@/services/upload";
 import { useMe } from "@/hooks/data";
 import type { BadgeStatus, User } from "@/data/types";
 
@@ -49,13 +50,25 @@ function VerificationBody({ me }: { me: User }) {
   const [status, setStatus] = useState<BadgeStatus>(me.badgeStatus);
   const [document, setDocument] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     if (!document) return;
     setSubmitting(true);
+    setError(null);
     try {
-      const updated = await api.me.requestBadge(document);
+      // The card goes to storage first; only an admin ever sees it, and only
+      // through a link that expires. The account records the key, never the
+      // file, and never a URL anyone else could follow.
+      const key = await uploadFile({ uri: document, kind: "badge" });
+      const updated = await api.me.requestBadge(key);
       setStatus(updated.badgeStatus);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "We could not send your card. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -67,13 +80,20 @@ function VerificationBody({ me }: { me: User }) {
       <Screen
         footer={
           status === "none" || status === "rejected" ? (
-            <Button
-              label="Submit for review"
-              block
-              loading={submitting}
-              disabled={!document}
-              onPress={submit}
-            />
+            <>
+              {error ? (
+                <Text variant="bodySmall" tone="error" style={styles.submitError}>
+                  {error}
+                </Text>
+              ) : null}
+              <Button
+                label="Submit for review"
+                block
+                loading={submitting}
+                disabled={!document}
+                onPress={submit}
+              />
+            </>
           ) : (
             <Button label="Done" block onPress={() => router.back()} />
           )
@@ -180,6 +200,9 @@ function VerificationBody({ me }: { me: User }) {
 }
 
 const useStyles = makeStyles((c) => ({
+  submitError: {
+    marginBottom: spacing.sm,
+  },
   content: {
     gap: spacing.lg,
     paddingTop: spacing.base,

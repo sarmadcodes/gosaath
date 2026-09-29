@@ -303,6 +303,10 @@ async function commuteOut<T extends Partial<CommuteInput>>(input: T): Promise<T>
 // ---------------------------------------------------------------------------
 
 export const httpApi: Api = {
+  uploads: {
+    sign: (input) => authed("POST", "/uploads/sign", input),
+  },
+
   auth: {
     async register(input: RegisterInput) {
       return pub("POST", "/auth/register", {
@@ -390,11 +394,11 @@ export const httpApi: Api = {
       if (patch.areaId !== undefined) body["areaId"] = await out("areas", patch.areaId);
       return userIn(await authed<User>("PATCH", "/me", body));
     },
-    async setPhoto(uri) {
-      return userIn(await authed<User>("PUT", "/me/photo", { uri }));
+    async setPhoto(key) {
+      return userIn(await authed<User>("PUT", "/me/photo", { key }));
     },
-    async requestBadge(documentUri) {
-      return userIn(await authed<User>("POST", "/me/badge", { documentUri }));
+    async requestBadge(key) {
+      return userIn(await authed<User>("POST", "/me/badge", { key }));
     },
     async addInstitution(institutionId) {
       return userIn(

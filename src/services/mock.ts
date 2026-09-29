@@ -167,6 +167,22 @@ async function persist(next: AuthSession | null) {
 }
 
 export const mockApi: Api = {
+  uploads: {
+    async sign(input) {
+      await delay();
+      // The same shape the server returns. The upload itself is a no-op here:
+      // the screens only need a key to hand back, and the rules that matter
+      // (type, size, ownership) are the server's to enforce.
+      const key = `${input.kind}s/${activeUser().id}/${Date.now()}`;
+      return {
+        url: `mock://upload/${key}`,
+        headers: { "Content-Type": input.contentType },
+        key,
+        expiresInSeconds: 900,
+      };
+    },
+  },
+
   auth: {
     async register(input) {
       await delay();
@@ -277,9 +293,9 @@ export const mockApi: Api = {
       if (session) await persist({ ...session, user });
       return user;
     },
-    async setPhoto(uri) {
+    async setPhoto(key) {
       await delay();
-      const user = { ...activeUser(), photoUrl: uri };
+      const user = { ...activeUser(), photoUrl: key };
       if (session) await persist({ ...session, user });
       return user;
     },

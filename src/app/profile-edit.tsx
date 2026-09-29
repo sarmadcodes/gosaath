@@ -14,6 +14,7 @@ import { Text } from "@/components/text";
 import { makeStyles, spacing } from "@/theme";
 import { SkeletonForm } from "@/components/skeleton";
 import { api } from "@/services";
+import { uploadFile } from "@/services/upload";
 import { areas, areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
 import { useMe } from "@/hooks/data";
@@ -58,6 +59,7 @@ function ProfileEditForm({ me }: { me: User }) {
   const phoneOk = phoneDigits.length === 11 && phoneDigits.startsWith("03");
   const nameOk = name.trim().length > 1;
   const valid = nameOk && phoneOk && !!area;
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function pickPhoto() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -76,10 +78,26 @@ function ProfileEditForm({ me }: { me: User }) {
   async function save() {
     if (!valid) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const areaId = areas.find((a) => a.name === area)?.id ?? me.areaId;
-      await api.me.update({ name: name.trim(), phone, photoUrl, areaId });
+
+      // A newly chosen photo is still a file on the phone. It has to reach
+      // storage before the account can point at it, or the photo exists for
+      // nobody but the person who picked it.
+      if (photoUrl && photoUrl !== me.photoUrl && !photoUrl.startsWith("http")) {
+        const key = await uploadFile({ uri: photoUrl, kind: "photo" });
+        await api.me.setPhoto(key);
+      } else if (photoUrl === null && me.photoUrl) {
+        await api.me.setPhoto(null);
+      }
+
+      await api.me.update({ name: name.trim(), phone, areaId });
       router.back();
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "We could not save your profile.",
+      );
     } finally {
       setSaving(false);
     }
@@ -90,13 +108,20 @@ function ProfileEditForm({ me }: { me: User }) {
       <AppBar title="Edit profile" />
       <Screen
         footer={
-          <Button
-            label="Save"
-            block
-            loading={saving}
-            disabled={!valid}
-            onPress={save}
-          />
+          <>
+            {saveError ? (
+              <Text variant="bodySmall" tone="error" style={styles.saveError}>
+                {saveError}
+              </Text>
+            ) : null}
+            <Button
+              label="Save"
+              block
+              loading={saving}
+              disabled={!valid}
+              onPress={save}
+            />
+          </>
         }
         contentStyle={styles.content}
       >
@@ -194,6 +219,9 @@ function ProfileEditForm({ me }: { me: User }) {
 }
 
 const useStyles = makeStyles(() => ({
+  saveError: {
+    marginBottom: spacing.sm,
+  },
   content: {
     gap: spacing.lg,
     paddingTop: spacing.base,
