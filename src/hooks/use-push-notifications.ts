@@ -130,10 +130,19 @@ export function usePushNotifications() {
     // Opened from a notification, whether the app was backgrounded or cold.
     const tapped = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const kind = response.notification.request.content.data?.kind as
-          | NotificationKind
-          | undefined;
-        const href = kind ? DESTINATIONS[kind] : undefined;
+        const data = response.notification.request.content.data ?? {};
+
+        // The server's destination wins. It sends one with every push, and
+        // deciding here as well would be a second mapping free to drift from
+        // it — a notification kind added on the server would then open
+        // nothing, silently, on every phone until the app shipped again.
+        //
+        // The local table stays as a fallback, for a push queued by an older
+        // build before `href` was sent.
+        const sent = typeof data["href"] === "string" ? data["href"] : undefined;
+        const kind = data["kind"] as NotificationKind | undefined;
+        const href = sent ?? (kind ? DESTINATIONS[kind] : undefined);
+
         if (href) router.push(href as never);
       },
     );
