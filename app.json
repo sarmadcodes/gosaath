@@ -25,7 +25,9 @@
           "imageWidth": 180,
           "resizeMode": "contain",
           "backgroundColor": "#0F6E5C",
-          "dark": { "backgroundColor": "#101312" }
+          "dark": {
+            "backgroundColor": "#101312"
+          }
         }
       ]
     ],
@@ -44,6 +46,13 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8c9e75cd-b696-42c0-b907-e0a2e8617e57"
+      }
+    },
+    "owner": "sarmadcodess"
   }
 }
