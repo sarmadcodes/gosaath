@@ -18,6 +18,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/theme";
 import { useInstitutionTheme } from "@/hooks/use-institution-theme";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
+// Imported for its side effect: the realtime client binds itself to the
+// session and to app foreground/background here, so no screen has to start or
+// stop it. Named explicitly rather than arriving indirectly through a data
+// hook, so removing the last `useAsync` import would not silently take the
+// live connection with it.
+import "@/services/realtime";
 
 SplashScreen.preventAutoHideAsync();
 

@@ -32,7 +32,7 @@ import { KEYS, clearSessionData, readJson, writeJson } from "@/services/storage"
  *   working unchanged.
  */
 
-const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+export const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const TIMEOUT_MS = 15_000;
 
 export class ApiError extends Error {
@@ -60,12 +60,37 @@ async function storedSession(): Promise<AuthSession | null> {
   return session;
 }
 
+/**
+ * Told whenever the app gains or loses a session.
+ *
+ * A callback rather than a direct call into the realtime client, which imports
+ * this module for its token: wiring it the other way round would be a cycle.
+ * It also means the live connection follows the session itself rather than a
+ * screen remembering to start and stop it — there is no path to a signed-in
+ * app with no stream, or a signed-out app still holding one open.
+ */
+type SessionListener = (signedIn: boolean) => void;
+const sessionListeners = new Set<SessionListener>();
+
+export function onSessionChange(listener: SessionListener): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
 async function saveSession(next: AuthSession | null) {
   session = next;
   accessToken = null;
   accessExpiresAt = 0;
   if (next) await writeJson(KEYS.session, next);
   else await clearSessionData();
+
+  for (const listener of sessionListeners) {
+    try {
+      listener(next !== null);
+    } catch {
+      // Signing in must not fail because something downstream of it did.
+    }
+  }
 }
 
 
@@ -169,8 +194,16 @@ async function send<T>(
   return { status: response.status, data: convertTimes(json.data, to12h) as T };
 }
 
-/** A fresh access token, fetched from the stored refresh token when needed. */
-async function currentAccessToken(): Promise<string> {
+/**
+ * A fresh access token, fetched from the stored refresh token when needed.
+ *
+ * Exported for the realtime client, which authenticates its stream with the
+ * same token and must go through the same single-flight refresh — two
+ * independent refreshes racing would have one of them rotate the refresh token
+ * out from under the other, which the server correctly reads as token theft
+ * and answers by revoking the whole chain.
+ */
+export async function currentAccessToken(): Promise<string> {
   if (accessToken && Date.now() < accessExpiresAt) return accessToken;
 
   // Concurrent requests share one refresh rather than each starting their own.
@@ -351,8 +384,11 @@ export const httpApi: Api = {
         return null;
       }
       const next = await sessionIn(restored);
-      session = next;
-      await writeJson(KEYS.session, next);
+      // Through saveSession, so a restored session starts the live connection
+      // exactly as a fresh sign-in does. Setting `session` directly here is
+      // how the stream came to be missing on every app launch that did not go
+      // through the login screen.
+      await saveSession(next);
       return next;
     },
   },

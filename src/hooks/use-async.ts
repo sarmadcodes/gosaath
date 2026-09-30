@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { registerFocusedReload } from "@/hooks/refresh-scope";
+import { onRealtime } from "@/services/realtime";
+import type { RealtimeEventType } from "@/data/events";
 
 export type AsyncState<T> = {
   data: T | undefined;
@@ -25,7 +27,19 @@ export type AsyncState<T> = {
 export function useAsync<T>(
   fetcher: () => Promise<T>,
   deps: unknown[] = [],
-  options: { refetchOnFocus?: boolean; pollMs?: number } = {},
+  options: {
+    refetchOnFocus?: boolean;
+    pollMs?: number;
+    /**
+     * Event types that mean this data is out of date.
+     *
+     * The event is a hint to refetch, never the new value: the server stays
+     * the only thing that decides what this person may see. `resync` is added
+     * automatically — a screen that refetches on a seat request must also
+     * refetch when the connection admits it lost track.
+     */
+    liveOn?: RealtimeEventType[];
+  } = {},
 ): AsyncState<T> {
   const [data, setData] = useState<T | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -88,8 +102,8 @@ export function useAsync<T>(
     }, [options.refetchOnFocus, run]),
   );
 
-  // Things another person changes — a request answered, a seat taken — are
-  // re-checked quietly while the screen is in front, until live updates exist.
+  // Legacy fallback for any screen not yet moved onto `liveOn`. Live updates
+  // are the mechanism now; polling is what this replaced.
   useFocusEffect(
     useCallback(() => {
       if (!options.pollMs) return;
@@ -97,6 +111,17 @@ export function useAsync<T>(
       return () => clearInterval(timer);
     }, [options.pollMs, run]),
   );
+
+  // Live updates. Subscribed for as long as the screen is mounted rather than
+  // only while focused: a request answered while the person is two screens
+  // deep should be correct when they come back, without the stale frame a
+  // focus-triggered refetch always shows first.
+  const liveOn = options.liveOn;
+  useEffect(() => {
+    if (!liveOn || liveOn.length === 0) return;
+    return onRealtime([...liveOn, "resync"], () => run());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run, liveOn?.join(",")]);
 
   // Available to pull-to-refresh while this screen is the one in front.
   useFocusEffect(useCallback(() => registerFocusedReload(run), [run]));

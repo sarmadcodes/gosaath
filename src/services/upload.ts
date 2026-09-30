@@ -3,7 +3,7 @@ import { api } from "@/services";
 /**
  * Sends one local file to storage and returns the key to record against it.
  *
- * Three steps, hidden from the screens: ask the server for permission, PUT
+ * Three steps, hidden from the screens: ask the server for permission, send
  * the bytes wherever it says, hand the key back. The bytes never go through
  * the API — a photo relayed through the server is the same photo, slower.
  *
@@ -50,10 +50,33 @@ export async function uploadFile(input: {
     bytes: blob.size,
   });
 
+  // Two upload shapes, decided by the server. A presigned URL takes the bytes
+  // as the whole body; a provider that signs parameters instead needs them as
+  // multipart fields next to the file. The screens know about neither.
+  const multipart = target.method === "POST";
+  let body: BodyInit = blob;
+
+  if (multipart) {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(target.fields ?? {})) {
+      form.append(name, value);
+    }
+    // Last, and named "file": some providers read the fields in order and
+    // reject a body whose file arrives before the signature it is signed by.
+    form.append("file", {
+      uri: input.uri,
+      name: `upload.${contentType.split("/")[1] ?? "jpg"}`,
+      type: contentType,
+      // React Native's FormData takes this shape rather than a Blob, and
+      // streams the file from disk instead of holding it in memory twice.
+    } as unknown as Blob);
+    body = form;
+  }
+
   const put = await fetch(target.url, {
-    method: "PUT",
+    method: target.method ?? "PUT",
     headers: target.headers,
-    body: blob,
+    body,
   });
 
   if (!put.ok) {
