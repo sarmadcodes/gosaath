@@ -23,10 +23,20 @@ export default function Index() {
     let cancelled = false;
 
     async function resolve() {
-      const [session, seen] = await Promise.all([
-        api.auth.restore(),
-        hasSeenOnboarding(),
-      ]);
+      const seen = await hasSeenOnboarding().catch(() => false);
+
+      let session: Awaited<ReturnType<typeof api.auth.restore>> = null;
+      try {
+        session = await api.auth.restore();
+      } catch {
+        // The server is unreachable, or the session could not be restored.
+        // This must not strand the app on the splash screen: without this
+        // catch the promise rejects, the destination is never set, and the
+        // loading spinner runs forever with nothing to say. Sending the
+        // person to login is recoverable; a permanent spinner is not.
+        session = null;
+      }
+
       if (cancelled) return;
 
       // Restore the institution accent before the first screen paints, so a
