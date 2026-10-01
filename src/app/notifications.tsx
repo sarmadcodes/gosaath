@@ -30,6 +30,9 @@ const marks: Record<
   replacementAvailable: { icon: "users", fg: "info", bg: "infoBg" },
   rideReminder: { icon: "clock", fg: "brand", bg: "brandSecondary" },
   cancellation: { icon: "x-octagon", fg: "error", bg: "errorBg" },
+  // Administrators only. A member never receives one of these — it is an
+  // alert about somebody, sent to the people who can act on it.
+  safetyAlert: { icon: "shield", fg: "error", bg: "errorBg" },
   badgeUpdate: { icon: "shield", fg: "success", bg: "successBg" },
   institutionApproved: { icon: "award", fg: "success", bg: "successBg" },
 };
