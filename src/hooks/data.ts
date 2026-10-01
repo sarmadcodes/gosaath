@@ -155,7 +155,12 @@ export function useNotifications() {
 }
 
 export function useBlocked() {
-  return useAsync(() => api.safety.blocked(), [], { refetchOnFocus: true });
+  return useAsync(() => api.safety.blocked(), [], {
+    refetchOnFocus: true,
+    // So blocking somebody on one device removes them from the list on
+    // another. The blocked person is told nothing, here or anywhere.
+    liveOn: ["safety.blocked", "safety.unblocked"],
+  });
 }
 
 export function usePreferences() {
