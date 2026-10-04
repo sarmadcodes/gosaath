@@ -33,6 +33,17 @@ import { KEYS, clearSessionData, readJson, writeJson } from "@/services/storage"
  */
 
 export const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+
+/**
+ * Where the API actually lives, version included.
+ *
+ * Exported so nothing composes it a second time. The realtime client used to
+ * build its own URL from BASE_URL and omitted the version prefix, so the event
+ * stream requested a path that does not exist, read the 404 as a connection
+ * failure, and retried forever — live updates were silently dead in every
+ * build while every ordinary request worked perfectly.
+ */
+export const API_ROOT = `${BASE_URL}/api/v1`;
 const TIMEOUT_MS = 15_000;
 
 export type FieldError = { path: string; message: string };
@@ -171,7 +182,7 @@ async function send<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}/api/v1${path}`, {
+    response = await fetch(`${API_ROOT}${path}`, {
       method,
       headers: {
         Accept: "application/json",

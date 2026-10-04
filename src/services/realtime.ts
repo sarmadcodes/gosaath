@@ -1,6 +1,6 @@
 import { AppState, type AppStateStatus } from "react-native";
 import { fetch as streamingFetch } from "expo/fetch";
-import { BASE_URL, currentAccessToken, onSessionChange } from "@/services/http";
+import { API_ROOT, BASE_URL, currentAccessToken, onSessionChange } from "@/services/http";
 import type { RealtimeEvent, RealtimeEventType } from "@/data/events";
 
 /**
@@ -126,7 +126,7 @@ async function connect(): Promise<void> {
   try {
     const token = await currentAccessToken();
 
-    const response = await streamingFetch(`${BASE_URL}/events`, {
+    const response = await streamingFetch(`${API_ROOT}/events`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "text/event-stream",
