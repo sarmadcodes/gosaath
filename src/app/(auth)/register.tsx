@@ -15,6 +15,7 @@ import { makeStyles, spacing, useColors } from "@/theme";
 import { areas } from "@/data/areas";
 import { campusById, institutionById } from "@/data/institutions";
 import { api } from "@/services";
+import { ApiError } from "@/services/http";
 import { useSignup } from "@/state/signup";
 
 export default function Register() {
@@ -49,7 +50,11 @@ export default function Register() {
 
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneOk = phoneDigits.length === 11 && phoneDigits.startsWith("03");
-  const passwordOk = password.length >= 8;
+  // Twelve, matching the server exactly. They disagreed — the app accepted
+  // eight — so a nine-character password passed every check on this screen and
+  // was then refused by the API with a generic "some fields need attention",
+  // which named nothing and pointed nowhere.
+  const passwordOk = password.length >= 12;
   const nameOk = name.trim().length > 1;
 
   const valid = nameOk && emailShape && domainOk && phoneOk && passwordOk && !!area;
@@ -102,8 +107,12 @@ export default function Register() {
 
       router.push({ pathname: "/(auth)/otp", params: { email } });
     } catch (error) {
+      // The server's own words about the specific field, when it gave them.
+      // "Some fields need attention" on its own is the least useful thing a
+      // form can say, and this screen used to say exactly that.
       setServerError(
-        error instanceof Error ? error.message : "Something went wrong.",
+        (error instanceof ApiError ? error.fieldMessage : null) ??
+          (error instanceof Error ? error.message : "Something went wrong."),
       );
     } finally {
       setSubmitting(false);
@@ -204,7 +213,7 @@ export default function Register() {
             <Input
               label="Password"
               icon="lock"
-              placeholder="At least 8 characters"
+              placeholder="At least 12 characters"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -212,7 +221,7 @@ export default function Register() {
               onBlur={() => setTouched(true)}
               error={
                 touched && password.length > 0 && !passwordOk
-                  ? "Use at least 8 characters."
+                  ? "Use at least 12 characters."
                   : undefined
               }
             />

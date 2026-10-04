@@ -35,14 +35,33 @@ import { KEYS, clearSessionData, readJson, writeJson } from "@/services/storage"
 export const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const TIMEOUT_MS = 15_000;
 
+export type FieldError = { path: string; message: string };
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly code?: string,
+    /**
+     * Which fields the server objected to, when it said.
+     *
+     * Carried because dropping it turns a precise answer into a useless one:
+     * the API replies "Some fields need attention" with a list naming the
+     * field and why, and a screen that shows only the first half leaves
+     * somebody retyping a form with no idea what is wrong with it. That
+     * happened — a password the sign-up screen accepted was refused by the
+     * server, and nothing on the phone could say so.
+     */
+    readonly fields?: FieldError[],
   ) {
     super(message);
     this.name = "ApiError";
+  }
+
+  /** The server's own words about the first bad field, if there was one. */
+  get fieldMessage(): string | null {
+    const first = this.fields?.[0];
+    return first ? first.message : null;
   }
 }
 
@@ -180,7 +199,7 @@ async function send<T>(
 
   const json = (await response.json().catch(() => ({}))) as {
     data?: T;
-    error?: { message?: string; code?: string };
+    error?: { message?: string; code?: string; fields?: FieldError[] };
   };
 
   if (!response.ok) {
@@ -188,6 +207,7 @@ async function send<T>(
       json.error?.message ?? "Something went wrong. Try again.",
       response.status,
       json.error?.code,
+      json.error?.fields,
     );
   }
 
