@@ -29,11 +29,20 @@
             "backgroundColor": "#101312"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GoSaath uses your photos so you can set a profile picture and upload your student card for verification."
+        }
       ]
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.gosaath.app"
+      "bundleIdentifier": "com.gosaath.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.gosaath.app",
