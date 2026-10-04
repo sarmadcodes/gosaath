@@ -63,13 +63,13 @@ export async function uploadFile(input: {
     }
     // Last, and named "file": some providers read the fields in order and
     // reject a body whose file arrives before the signature it is signed by.
-    form.append("file", {
-      uri: input.uri,
-      name: `upload.${contentType.split("/")[1] ?? "jpg"}`,
-      type: contentType,
-      // React Native's FormData takes this shape rather than a Blob, and
-      // streams the file from disk instead of holding it in memory twice.
-    } as unknown as Blob);
+    //
+    // The Blob itself, not the legacy React Native { uri, name, type } shape.
+    // That shape is rejected outright by this version of React Native with
+    // "unsupported FormData part implementation", which is what broke every
+    // profile photo and every student card. The blob was already read above to
+    // measure the file, so appending it costs nothing extra.
+    form.append("file", blob, `upload.${contentType.split("/")[1] ?? "jpg"}`);
     body = form;
   }
 

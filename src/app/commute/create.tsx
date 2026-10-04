@@ -16,7 +16,7 @@ import { ToggleRow } from "@/components/toggle-row";
 import { SkeletonForm } from "@/components/skeleton";
 import { LocationSearch } from "@/components/location";
 import { SelectedLocation } from "@/components/location";
-import { useMe } from "@/hooks/data";
+import { useCommute, useMe } from "@/hooks/data";
 import { makeStyles, radius, spacing, useColors } from "@/theme";
 import { api } from "@/services";
 import { areas } from "@/data/areas";
@@ -28,6 +28,7 @@ import {
 } from "@/utils/schedule";
 import type {
   AreaSuggestion,
+  Commute,
   CommuteDirection,
   DaySchedule,
   User,
@@ -37,8 +38,13 @@ import type {
 export default function CreateCommute() {
   const styles = useStyles();
   const { data: me } = useMe();
+  // One commute per person, enforced by the server. So this screen edits the
+  // existing one rather than making a second — reaching it from Settings used
+  // to call create and come back with "You already have a commute", which made
+  // changing your days impossible.
+  const { data: commute, loading: loadingCommute } = useCommute();
 
-  if (!me) {
+  if (!me || loadingCommute) {
     return (
       <>
         <AppBar title="Your weekly commute" />
@@ -49,7 +55,7 @@ export default function CreateCommute() {
     );
   }
 
-  return <CreateCommuteForm me={me} />;
+  return <CreateCommuteForm me={me} commute={commute ?? null} />;
 }
 
 /** Three questions, one per screen. The order they matter in. */
@@ -63,24 +69,43 @@ const TITLES: Record<Step, string> = {
   times: "What time do you travel?",
 };
 
-function CreateCommuteForm({ me }: { me: User }) {
+function CreateCommuteForm({
+  me,
+  commute,
+}: {
+  me: User;
+  commute: Commute | null;
+}) {
   const styles = useStyles();
   const colors = useColors();
 
+  const editing = commute !== null;
   const [step, setStep] = useState<Step>("where");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const seedArea = areas.find((a) => a.id === me.areaId);
+  // Seeded from the existing commute when there is one, so editing starts
+  // from what you already said rather than from a blank form that would
+  // silently replace it.
+  const seedAreaId = commute?.originAreaId ?? me.areaId;
+  const seedArea = areas.find((a) => a.id === seedAreaId);
   const [origin, setOrigin] = useState<AreaSuggestion | null>(
     seedArea
       ? { areaId: seedArea.id, name: seedArea.name, city: seedArea.city }
       : null,
   );
-  const [days, setDays] = useState<Weekday[]>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
-  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
-  const [direction, setDirection] = useState<CommuteDirection>("both");
-  const [womenOnly, setWomenOnly] = useState(false);
+  const [days, setDays] = useState<Weekday[]>(
+    commute && commute.schedule.length > 0
+      ? commute.schedule.map((entry) => entry.day)
+      : ["Mon", "Tue", "Wed", "Thu", "Fri"],
+  );
+  const [schedule, setSchedule] = useState<DaySchedule[]>(
+    commute?.schedule ?? [],
+  );
+  const [direction, setDirection] = useState<CommuteDirection>(
+    commute?.direction ?? "both",
+  );
+  const [womenOnly, setWomenOnly] = useState(commute?.womenOnly ?? false);
 
   const campusName = campusById(me.campusId)?.name ?? "your campus";
   const institution =
@@ -117,16 +142,33 @@ function CreateCommuteForm({ me }: { me: User }) {
     setSaving(true);
     setError(null);
     try {
-      await api.commutes.create({
-        intent: "both",
-        institutionId: me.institutionId,
-        campusId: me.campusId,
-        originAreaId: origin.areaId,
-        schedule,
-        direction,
-        womenOnly,
-      });
-      router.replace("/commute/ready");
+      if (commute) {
+        // Edited in place. The intent is left exactly as it was: somebody who
+        // offers seats and changes their Monday time is still offering seats.
+        await api.commutes.update(commute.id, {
+          originAreaId: origin.areaId,
+          schedule,
+          direction,
+          womenOnly,
+        });
+        router.back();
+      } else {
+        await api.commutes.create({
+          // "find", not "both". Offering seats is a separate step that asks
+          // for a car — see driver/offer, which switches this commute to
+          // "offer" once there is one. Creating with "both" made the server
+          // demand a vehicle to set up a commute at all, which nobody needs
+          // just to say when and where they travel.
+          intent: "find",
+          institutionId: me.institutionId,
+          campusId: me.campusId,
+          originAreaId: origin.areaId,
+          schedule,
+          direction,
+          womenOnly,
+        });
+        router.replace("/commute/ready");
+      }
     } catch (err) {
       setError(
         err instanceof Error

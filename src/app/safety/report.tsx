@@ -11,6 +11,7 @@ import { SectionHeader } from "@/components/section-header";
 import { Text } from "@/components/text";
 import { makeStyles, MIN_TOUCH_TARGET, radius, spacing, useColors } from "@/theme";
 import { api } from "@/services";
+import { ApiError } from "@/services/http";
 
 const REASONS = [
   {
@@ -51,10 +52,12 @@ export default function Report() {
   const [detail, setDetail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   async function send() {
     if (!reason) return;
     setSending(true);
+    setFailed(null);
     try {
       await api.safety.report({
         reportedUserId: userId,
@@ -62,6 +65,18 @@ export default function Report() {
         detail: detail.trim() || undefined,
       });
       setSent(true);
+    } catch (error) {
+      // Previously a bare try/finally with no catch: a failed report left the
+      // spinner stopping and nothing else happening, so somebody who had just
+      // described something that frightened them could not tell whether
+      // anybody had received it. Of everything in this app, that is the worst
+      // place to fail quietly.
+      setFailed(
+        (error instanceof ApiError ? error.fieldMessage : null) ??
+          (error instanceof Error
+            ? error.message
+            : "We could not send that report."),
+      );
     } finally {
       setSending(false);
     }
@@ -131,6 +146,12 @@ export default function Report() {
           Tell us what happened. Reports are confidential and reviewed by our
           team.
         </Text>
+
+        {failed ? (
+          <Text variant="body" tone="error">
+            {failed} Nothing has been sent — please try again.
+          </Text>
+        ) : null}
 
         <View style={styles.section}>
           <SectionHeader title="What went wrong" />

@@ -10,13 +10,12 @@ import { SectionHeader } from "@/components/section-header";
 import { Sheet } from "@/components/sheet";
 import { Text } from "@/components/text";
 import { SkeletonForm } from "@/components/skeleton";
-import { useMe } from "@/hooks/data";
+import { useInstitutionSearch, useMe } from "@/hooks/data";
 import type { User } from "@/data/types";
 import { makeStyles, radius, spacing, useColors } from "@/theme";
 import {
   campusById,
   institutionById,
-  institutions,
   sortInstitutions,
 } from "@/data/institutions";
 
@@ -51,8 +50,18 @@ function MyInstitutionsBody({ me }: { me: User }) {
   const primary = institutionById(me.institutionId);
   const campus = campusById(me.campusId);
 
+  // From the server, not the bundled registry.
+  //
+  // The local list in @/data/institutions carries logos and brand colours for
+  // two dozen universities, most of which have not been onboarded. Offering it
+  // here let somebody "add" an institution that does not exist on the
+  // platform — they would pick it, and nothing would ever appear. Which
+  // institutions are real and open is the server's to say, exactly as on the
+  // sign-up picker.
+  const { data: available = [] } = useInstitutionSearch("");
+
   const addable = sortInstitutions(
-    institutions.filter(
+    available.filter(
       (i) => i.id !== me.institutionId && !additional.includes(i.id),
     ),
   );
