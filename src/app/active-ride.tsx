@@ -163,6 +163,18 @@ export default function ActiveRide() {
           />
         ) : null}
         <ListRow
+          // First in the destructive group, and reachable in two taps from the
+          // ride somebody is actually sitting in — which is the only moment
+          // this screen exists for.
+          label="Get help"
+          icon="alert-triangle"
+          destructive
+          onPress={() => {
+            setActionsOpen(false);
+            router.push("/safety/help");
+          }}
+        />
+        <ListRow
           label="Report a problem"
           icon="flag"
           destructive

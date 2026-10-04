@@ -581,6 +581,26 @@ export const httpApi: Api = {
       await authed("DELETE", `/safety/blocks/${userId}`);
     },
     blocked: () => authed("GET", "/safety/blocks"),
+
+    raiseAlert(input) {
+      // Ride ids are the server's own, like everywhere else rides are
+      // addressed — only areas, institutions and campuses need translating.
+      return authed("POST", "/safety/alerts", {
+        kind: input.kind,
+        ...(input.rideInstanceId ? { rideInstanceId: input.rideInstanceId } : {}),
+        ...(input.note ? { note: input.note } : {}),
+      });
+    },
+
+    emergencyContacts: () => authed("GET", "/safety/emergency-contacts"),
+  },
+
+  tripShare: {
+    share: (rideId) => authed("POST", `/rides/${rideId}/share`),
+    status: (rideId) => authed("GET", `/rides/${rideId}/share`),
+    async revoke(rideId) {
+      await authed("DELETE", `/rides/${rideId}/share`);
+    },
   },
 
   support: {

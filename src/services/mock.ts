@@ -166,6 +166,22 @@ async function persist(next: AuthSession | null) {
   else await clearSessionData();
 }
 
+/** Pakistan's real numbers, mirrored from the server so the mock cannot lie. */
+const EMERGENCY_CONTACTS = [
+  { label: "Police", number: "15" },
+  { label: "Rescue 1122", number: "1122" },
+  { label: "Ambulance (Edhi)", number: "115" },
+];
+
+let sharedTrips: { active: boolean; expiresAt: string | null; viewCount: number } | null = null;
+
+function tomorrowEvening(): string {
+  const when = new Date();
+  when.setDate(when.getDate() + 1);
+  when.setHours(20, 0, 0, 0);
+  return when.toISOString();
+}
+
 export const mockApi: Api = {
   uploads: {
     async sign(input) {
@@ -739,6 +755,35 @@ export const mockApi: Api = {
     async blocked() {
       await guard(200);
       return blocked;
+    },
+
+    async raiseAlert() {
+      await delay(300);
+      // The same shape the server returns, including the honest `notified`
+      // count — a screen built against this must not be able to imply a
+      // dispatch that neither backend performs.
+      return { id: "alert-mock-1", contacts: EMERGENCY_CONTACTS, notified: 1 };
+    },
+
+    async emergencyContacts() {
+      await delay(120);
+      return EMERGENCY_CONTACTS;
+    },
+  },
+
+  tripShare: {
+    async share() {
+      await delay(300);
+      sharedTrips = { active: true, expiresAt: tomorrowEvening(), viewCount: 0 };
+      return { url: "https://api.gosaath.example/t/mock-token", expiresAt: sharedTrips.expiresAt! };
+    },
+    async status() {
+      await delay(150);
+      return sharedTrips;
+    },
+    async revoke() {
+      await delay(200);
+      sharedTrips = null;
     },
   },
 

@@ -15,6 +15,7 @@ import { formatPkr } from "@/components/contribution";
 import { describeDayTimes, sortSchedule } from "@/utils/schedule";
 import { makeStyles, spacing, useColors } from "@/theme";
 import { SkeletonBlock } from "@/components/skeleton";
+import { TripShare } from "@/components/trip-share";
 import { useRide } from "@/hooks/data";
 
 export default function RideDetails() {
@@ -180,6 +181,11 @@ export default function RideDetails() {
             ) : null}
           </Card>
         </View>
+
+        {/* Offered only once the seat is confirmed, which is the same signal
+            the full plate uses: before that there is no trip to tell anybody
+            about, and the server refuses to share one anyway. */}
+        {ride.plateVisibility === "full" ? <TripShare rideId={ride.id} /> : null}
 
         {WOMEN_ONLY_ENABLED && ride.womenOnly ? (
           <Card tone="inset">
