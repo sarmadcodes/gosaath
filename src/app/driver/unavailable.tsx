@@ -7,6 +7,7 @@ import { Card } from "@/components/card";
 import { Screen } from "@/components/screen";
 import { SectionHeader } from "@/components/section-header";
 import { Text } from "@/components/text";
+import { Input } from "@/components/input";
 import { ToggleRow } from "@/components/toggle-row";
 import { SkeletonRows, SkeletonText } from "@/components/skeleton";
 import { makeStyles, spacing } from "@/theme";
@@ -19,6 +20,8 @@ export default function DriverUnavailable() {
   const styles = useStyles();
   const [selected, setSelected] = useState<Weekday[]>([]);
   const [findCover, setFindCover] = useState(true);
+  const [reason, setReason] = useState("");
+  const [failed, setFailed] = useState(false);
   const { data: commute } = useCommute();
   const { data: week = [], loading } = useCommuteWeek(commute?.id);
 
@@ -33,7 +36,17 @@ export default function DriverUnavailable() {
    * uncovered by the time the replacement screen looks for cover.
    */
   async function submit() {
-    if (commute) await api.commuteWeek.setUnavailable(commute.id, selected);
+    setFailed(false);
+    try {
+      if (commute) {
+        await api.commuteWeek.setUnavailable(commute.id, selected, reason);
+      }
+    } catch {
+      // Said out loud. Somebody who thinks they have told their passengers,
+      // and has not, will not be there tomorrow and neither will the ride.
+      setFailed(true);
+      return;
+    }
     if (findCover) router.replace("/driver/replacement");
     else router.back();
   }
@@ -99,6 +112,30 @@ export default function DriverUnavailable() {
             />
           </Card>
         </View>
+
+        <View style={styles.section}>
+          <SectionHeader title="Why, for the record" />
+          <Input
+            label="Reason (optional)"
+            value={reason}
+            onChangeText={setReason}
+            placeholder="Car is at the workshop"
+            multiline
+            numberOfLines={2}
+            maxLength={500}
+          />
+          <Text variant="caption" tone="tertiary">
+            Your passengers are not shown this. They are told the ride is not
+            running and offered cover. It is kept for our records.
+          </Text>
+        </View>
+
+        {failed ? (
+          <Text variant="body" tone="error">
+            That did not send, so nobody has been told yet. Check your
+            connection and try again.
+          </Text>
+        ) : null}
 
         <Card tone="inset">
           <Text variant="bodySmall" tone="secondary">

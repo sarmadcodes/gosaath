@@ -506,8 +506,11 @@ export const httpApi: Api = {
     week: (commuteId) => authed("GET", `/commutes/${commuteId}/week`),
     members: (commuteId) => authed("GET", `/commutes/${commuteId}/members`),
     skipDay: (commuteId, day) => authed("POST", `/commutes/${commuteId}/skip`, { day }),
-    setUnavailable: (commuteId, days) =>
-      authed("POST", `/commutes/${commuteId}/unavailable`, { days }),
+    setUnavailable: (commuteId, days, reason) =>
+      authed("POST", `/commutes/${commuteId}/unavailable`, {
+        days,
+        ...(reason?.trim() ? { reason: reason.trim() } : {}),
+      }),
     replacements: (commuteId, day) =>
       authed("GET", `/commutes/${commuteId}/replacements${qs({ day })}`),
   },

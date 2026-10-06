@@ -409,7 +409,7 @@ export const mockApi: Api = {
       week = week.map((d) => (d.day === day ? { ...d, status: "skipped" } : d));
       return week;
     },
-    async setUnavailable(_id, days) {
+    async setUnavailable(_id, days, _reason) {
       await delay();
       // Clearing the driver orphans those days, exactly as the real engine does.
       week = week.map((d) =>

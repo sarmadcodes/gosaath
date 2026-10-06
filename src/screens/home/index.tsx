@@ -30,6 +30,7 @@ import {
   useCommuteWeek,
   useMatches,
   useMatchSummary,
+  useVehicles,
   useMe,
   useNotifications,
 } from "@/hooks/data";
@@ -39,6 +40,7 @@ import { MatchCard } from "@/screens/home/match-card";
 import { QuickActions } from "@/screens/home/quick-actions";
 import { TodayCard } from "@/screens/home/today-card";
 import { SetupCard } from "@/screens/home/setup-card";
+import { ModeToggle } from "@/screens/home/mode-toggle";
 
 export function Home() {
   const styles = useStyles();
@@ -55,6 +57,7 @@ export function Home() {
   const { data: week = [] } = useCommuteWeek(commute?.id);
   const { data: members = [] } = useCommuteMembers(commute?.id);
   const { data: summary } = useMatchSummary();
+  const { data: vehicles = [] } = useVehicles();
   const { data: matches = [] } = useMatches();
   const { data: notifications = [] } = useNotifications();
 
@@ -113,6 +116,19 @@ export function Home() {
           </Pressable>
         </View>
       </View>
+
+      {/* Which half of the product you are in, before anything below it. The
+          cards underneath read completely differently depending on this, and
+          having to infer it from them was the single most confusing thing on
+          the screen. */}
+      {me ? (
+        <ModeToggle
+          me={me}
+          commute={commute ?? null}
+          hasVehicle={vehicles.length > 0}
+          onChanged={reloadCommute}
+        />
+      ) : null}
 
       {commuteError ? (
         // Never the setup card on failure: telling someone with a commute to
