@@ -45,7 +45,13 @@ export function useMe() {
 export function useCommute() {
   return useAsync(() => api.commutes.mine(), [], {
     refetchOnFocus: true,
-    liveOn: ["commute.updated", "ride.confirmed", "ride.cancelled", "driverUnavailable"],
+    liveOn: [
+      "commute.updated",
+      "ride.confirmed",
+      "ride.cancelled",
+      "driverUnavailable",
+      "driverAvailable",
+    ],
   });
 }
 
@@ -61,6 +67,9 @@ export function useCommuteWeek(commuteId?: string) {
         "ride.updated",
         "ride.seatsChanged",
         "driverUnavailable",
+        // A driver putting a day back on changes the same screens that
+        // standing it down changed, so it has to travel the same way.
+        "driverAvailable",
         "commute.updated",
       ],
     },
@@ -73,7 +82,15 @@ export function useCommuteMembers(commuteId?: string) {
     [commuteId],
     {
       refetchOnFocus: true,
-      liveOn: ["seatRequest.accepted", "ride.confirmed", "ride.cancelled"],
+      // A cancelled acceptance removes somebody from the group, which this
+      // list is exactly what shows.
+      liveOn: [
+        "seatRequest.accepted",
+        "seatRequest.cancelled",
+        "ride.confirmed",
+        "ride.cancelled",
+        "driverAvailable",
+      ],
     },
   );
 }
@@ -106,7 +123,14 @@ export function useRide(id?: string) {
     {
       // Seats especially: somebody looking at a ride while its last seat goes
       // should see it go, not find out by being refused.
-      liveOn: ["ride.updated", "ride.seatsChanged", "ride.cancelled", "seatRequest.accepted"],
+      liveOn: [
+        "ride.updated",
+        "ride.seatsChanged",
+        "ride.cancelled",
+        "seatRequest.accepted",
+        // Returns a seat to the ride, so a full one becomes bookable again.
+        "seatRequest.cancelled",
+      ],
     },
   );
 }

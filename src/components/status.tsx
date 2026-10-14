@@ -17,6 +17,9 @@ const specs: Record<AttendanceStatus, Spec> = {
   skipped: { label: "You skipped", fg: "textTertiary", icon: "minus" },
   cancelled: { label: "Cancelled", fg: "error", icon: "x" },
   noDriver: { label: "No driver", fg: "error", icon: "alert-triangle" },
+  // The owner's view of the same day. Stated as a fact about them rather
+  // than as a problem done to them, because they are the one who did it.
+  notDriving: { label: "You're not driving", fg: "warning", icon: "pause-circle" },
 };
 
 export function statusLabel(status: AttendanceStatus) {

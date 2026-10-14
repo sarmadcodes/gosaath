@@ -411,9 +411,21 @@ export const mockApi: Api = {
     },
     async setUnavailable(_id, days, _reason) {
       await delay();
-      // Clearing the driver orphans those days, exactly as the real engine does.
+      // The owner is the one driving these mocks, so they see the status the
+      // real engine gives the owner — not the one passengers get.
       week = week.map((d) =>
-        days.includes(d.day) ? { ...d, status: "noDriver" } : d,
+        days.includes(d.day) ? { ...d, status: "notDriving" } : d,
+      );
+      return week;
+    },
+    async setAvailable(_id, days) {
+      await delay();
+      // Only days actually stood down, mirroring the server's guard: calling
+      // this on an ordinary day must not change it.
+      week = week.map((d) =>
+        days.includes(d.day) && (d.status === "notDriving" || d.status === "noDriver")
+          ? { ...d, status: "confirmed" }
+          : d,
       );
       return week;
     },
@@ -581,6 +593,9 @@ export const mockApi: Api = {
         seats,
         contribution: ride.contribution,
         status: "pending",
+        // The mock has one commute per person and no overlap engine, so the
+        // ride's own days are the honest answer here.
+        matchingDays: ride.schedule.map((entry) => entry.day),
       };
 
       // Kept beside the list rather than on the request: `SeatRequest` is the
@@ -870,7 +885,12 @@ function estimateBetween(fromAreaId: string, toAreaId: string) {
   const distanceKm = Math.round(steps * 1.4 * 10) / 10;
   const minutes = Math.max(5, Math.round((steps * 4 + 6) / 5) * 5);
   return {
-    label: `~${minutes} min away`,
+    // Same phrasing the server builds, so a screen developed against the
+    // mock does not lay out differently against the real thing.
+    label:
+      distanceKm < 1.5
+        ? "Same part of town"
+        : `${distanceKm} km · ~${minutes} min`,
     overlapHint: CORRIDORS[fromAreaId],
     distanceKm,
     approximate: true as const,

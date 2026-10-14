@@ -176,10 +176,12 @@ export type ProximityIndicatorProps = {
 };
 
 /**
- * "~12 min away", never "12.37 km".
+ * "3.2 km · ~12 min", or "Same part of town" when the distance is noise.
  *
  * The label is produced by the location service, not computed here — the UI
  * must not invent authoritative-looking numbers from data it does not have.
+ * The distance is area to area, which is public geography about two
+ * neighbourhoods rather than about either person.
  */
 export function ProximityIndicator({
   estimate,

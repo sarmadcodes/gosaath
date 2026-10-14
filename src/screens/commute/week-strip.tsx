@@ -23,8 +23,12 @@ export function WeekStrip({ week, onSelectDay }: WeekStripProps) {
   return (
     <Card padding="none">
       {week.map((entry, index) => {
+        // A day you stood yourself down from wants attention too — it is the
+        // one you may have meant to leave running.
         const needsAction =
-          entry.status === "noDriver" || entry.status === "pending";
+          entry.status === "noDriver" ||
+          entry.status === "notDriving" ||
+          entry.status === "pending";
         return (
           <Pressable
             key={entry.day}

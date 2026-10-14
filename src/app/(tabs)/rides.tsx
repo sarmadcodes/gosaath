@@ -5,6 +5,7 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Badge } from "@/components/badge";
 import { Button } from "@/components/button";
+import { ContactActions } from "@/components/contact-actions";
 import { SectionHeader } from "@/components/section-header";
 import { Card } from "@/components/card";
 import { EmptyState } from "@/components/empty-state";
@@ -30,6 +31,7 @@ import {
   useCommuteWeek,
   useIncomingRequests,
   useSentRequests,
+  useMe,
 } from "@/hooks/data";
 import { api } from "@/services";
 import type { SeatRequest } from "@/data/types";
@@ -48,9 +50,12 @@ export default function RidesRoute() {
       : "upcoming",
   );
 
+  const { data: me } = useMe();
   const { data: commute, loading, error, reload } = useCommute();
   const { data: week = [], reload: reloadWeek } = useCommuteWeek(commute?.id);
-  const { data: members = [], reload: reloadMembers } = useCommuteMembers(commute?.id);
+  const { data: members = [], reload: reloadMembers } = useCommuteMembers(
+    commute?.id,
+  );
   // Two directions, kept apart on purpose: what people are asking of you is a
   // to-do list, what you have asked of them is a waiting list.
   const {
@@ -63,7 +68,25 @@ export default function RidesRoute() {
   // way is what produced "already answered".
   const [answering, setAnswering] = useState<string | null>(null);
 
-  async function respond(request: SeatRequest, action: "accept" | "decline") {
+  function confirmCancel(request: SeatRequest) {
+    Alert.alert(
+      "Cancel this seat?",
+      `${request.user.firstName} will be told straight away and will lose their seat on this ride.`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel seat",
+          style: "destructive",
+          onPress: () => respond(request, "cancel"),
+        },
+      ],
+    );
+  }
+
+  async function respond(
+    request: SeatRequest,
+    action: "accept" | "decline" | "cancel",
+  ) {
     // Removed straight away so the tap feels immediate, then put back if the
     // server refuses. Accepting can genuinely fail — somebody else may have
     // taken the last seat, or the request may already have been answered on
@@ -72,10 +95,13 @@ export default function RidesRoute() {
     if (answering) return;
     setAnswering(request.id);
     const before = incoming;
-    // Accepted stays on the list, marked as such; declined goes away.
+    // Accepted stays on the list, marked as such; declined and cancelled go
+    // away — there is nothing further to do with either.
     setIncoming(
       action === "accept"
-        ? incoming.map((r) => (r.id === request.id ? { ...r, status: "accepted" } : r))
+        ? incoming.map((r) =>
+            r.id === request.id ? { ...r, status: "accepted" } : r,
+          )
         : incoming.filter((r) => r.id !== request.id),
     );
 
@@ -90,10 +116,12 @@ export default function RidesRoute() {
       // Most likely answered elsewhere; either way, re-sync with the server.
       reloadIncoming();
       Alert.alert(
-        action === "accept" ? "Could not accept" : "Could not decline",
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Try again.",
+        action === "accept"
+          ? "Could not accept"
+          : action === "cancel"
+            ? "Could not cancel"
+            : "Could not decline",
+        err instanceof Error ? err.message : "Something went wrong. Try again.",
       );
     } finally {
       setAnswering(null);
@@ -161,8 +189,15 @@ export default function RidesRoute() {
   );
   const past = week.filter((day) => day.status === "confirmed").slice(0, 3);
 
+  // Whether this commute is one you drive. A driver was being shown their own
+  // days with a passenger's vocabulary — "Confirmed", under somebody's name —
+  // which reads as having been given a seat in their own car.
+  const iAmDriving = driver?.user.id === me?.id;
+
   return (
-    <Screen contentStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}>
+    <Screen
+      contentStyle={[styles.content, { paddingTop: insets.top + spacing.md }]}
+    >
       <Text variant="h1">Rides</Text>
       <Text variant="body" tone="secondary">
         The individual days from your weekly commute.
@@ -205,6 +240,7 @@ export default function RidesRoute() {
                 schedule={commute.schedule}
                 contribution={commute.contribution}
                 driverName={driver?.user.firstName}
+                driving={iAmDriving}
               />
             ))}
           </View>
@@ -242,6 +278,16 @@ export default function RidesRoute() {
                           ? ` · ${formatPkr(request.contribution)}`
                           : ""}
                       </Text>
+                      {/* The overlap, not the ride's own days. Deciding
+                          without it means working out in your head which
+                          mornings this person would actually be in the car. */}
+                      {request.matchingDays.length > 0 ? (
+                        <Text variant="bodySmall" tone="brand">
+                          {request.matchingDays.length} of{" "}
+                          {request.schedule.length} days match ·{" "}
+                          {request.matchingDays.join(", ")}
+                        </Text>
+                      ) : null}
                     </View>
                     {request.status === "pending" ? (
                       <View style={styles.requestActions}>
@@ -256,14 +302,40 @@ export default function RidesRoute() {
                           label="Accept"
                           style={styles.flex}
                           loading={answering === request.id}
-                          disabled={answering !== null && answering !== request.id}
+                          disabled={
+                            answering !== null && answering !== request.id
+                          }
                           onPress={() => respond(request, "accept")}
                         />
                       </View>
                     ) : (
-                      <View style={styles.requestMeta}>
-                        <Badge kind="verified" label="Accepted" />
-                      </View>
+                      <>
+                        <View style={styles.requestMeta}>
+                          <Badge kind="verified" label="Accepted" />
+                        </View>
+                        {/* Only now. The number arrives with the acceptance
+                            and not a moment earlier, which is what the
+                            privacy policy promises. */}
+                        {request.contactPhone ? (
+                          <ContactActions
+                            firstName={request.user.firstName}
+                            phone={request.contactPhone}
+                            caption="Agree a pickup point between yourselves."
+                          />
+                        ) : null}
+                        <View style={styles.requestActions}>
+                          <Button
+                            label="Cancel this seat"
+                            variant="tertiary"
+                            style={styles.flex}
+                            loading={answering === request.id}
+                            disabled={
+                              answering !== null && answering !== request.id
+                            }
+                            onPress={() => confirmCancel(request)}
+                          />
+                        </View>
+                      </>
                     )}
                   </Card>
                 ))}
@@ -317,10 +389,11 @@ export default function RidesRoute() {
           {past.map((day) => (
             <DayRideCard
               key={`past-${day.day}`}
-              day={{ ...day, status: "confirmed" }}
+              day={day}
               schedule={commute.schedule}
               contribution={commute.contribution}
               driverName={driver?.user.firstName}
+              driving={iAmDriving}
               past
             />
           ))}
@@ -335,6 +408,7 @@ function DayRideCard({
   schedule,
   contribution,
   driverName,
+  driving,
   past,
 }: {
   day: CommuteDay;
@@ -342,13 +416,17 @@ function DayRideCard({
   /** Absent when nothing has been agreed yet — then no figure is shown. */
   contribution?: number;
   driverName?: string;
+  /** True when this is your own car. Changes who the day is about. */
+  driving?: boolean;
   past?: boolean;
 }) {
   const styles = useStyles();
   const colors = useColors();
 
   const entry = sortSchedule(schedule).find((s) => s.day === day.day);
-  const needsAction = day.status === "noDriver";
+  // Only a passenger needs cover. The driver of a day with no driver is the
+  // person who stood it down, and their action is to undo that.
+  const needsAction = day.status === "noDriver" && !driving;
 
   return (
     <Card
@@ -380,9 +458,17 @@ function DayRideCard({
       <View style={styles.dayFooter}>
         {!past ? <StatusTag status={day.status} /> : null}
         <View style={styles.footerItem}>
-          <Feather name="user" size={13} color={colors.textTertiary} />
+          <Feather
+            name={driving ? "key" : "user"}
+            size={13}
+            color={colors.textTertiary}
+          />
           <Text variant="bodySmall" tone="secondary" numberOfLines={1}>
-            {needsAction ? "No driver" : driverName}
+            {driving
+              ? "You are driving"
+              : needsAction
+                ? "No driver"
+                : driverName}
           </Text>
         </View>
         {contribution ? (

@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -18,6 +19,8 @@ import {
   spacing,
   useColors,
 } from "@/theme";
+import { api } from "@/services";
+import type { Weekday } from "@/data/types";
 import { areaName } from "@/data/areas";
 import {
   campusById,
@@ -54,7 +57,28 @@ export function Home() {
     error: commuteError,
     reload: reloadCommute,
   } = useCommute();
-  const { data: week = [] } = useCommuteWeek(commute?.id);
+  const { data: week = [], reload: reloadWeek } = useCommuteWeek(commute?.id);
+  // Guards the one action on this screen that writes. Without it a double tap
+  // sends two restores, and the second answers about a day already restored.
+  const [restoring, setRestoring] = useState(false);
+
+  const restoreDay = async (day: Weekday) => {
+    if (!commute) return;
+    setRestoring(true);
+    try {
+      await api.commuteWeek.setAvailable(commute.id, [day]);
+      await reloadWeek();
+    } catch (error) {
+      Alert.alert(
+        "Could not put the day back",
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Try again.",
+      );
+    } finally {
+      setRestoring(false);
+    }
+  };
   const { data: members = [] } = useCommuteMembers(commute?.id);
   const { data: summary } = useMatchSummary();
   const { data: vehicles = [] } = useVehicles();
@@ -74,6 +98,11 @@ export function Home() {
   // members this would announce the absence of somebody who never existed.
   const dayNeedingAction =
     members.length > 0 ? week.find((d) => d.status === "noDriver") : undefined;
+  // Days you stood yourself down from. Shown whether or not anybody else is
+  // in the group, because the thing to undo is yours either way — and with
+  // no members at all there was previously nothing on screen to undo it
+  // with, so a driver who tapped the wrong day was simply stuck.
+  const dayNotDriving = week.find((d) => d.status === "notDriving");
   const companions = members.filter(
     (m) => m.role === "passenger" && m.travellingNext && m.user.id !== me?.id,
   ).length;
@@ -185,6 +214,18 @@ export function Home() {
               body={`Your usual driver cannot make ${dayNeedingAction.date}. We found people from your campus on a similar route.`}
               actionLabel="Find cover"
               onAction={() => router.push("/driver/replacement")}
+            />
+          ) : null}
+
+          {/* The same ride, from the other side. Telling the person who stood
+              the day down that there is "no driver" reads as being stranded
+              by somebody else, and offered them cover for their own car. */}
+          {dayNotDriving ? (
+            <AlertBanner
+              title={`You are not driving on ${dayNotDriving.day}`}
+              body={`You told everyone you cannot make ${dayNotDriving.date}. Anyone riding with you has been told.`}
+              actionLabel={restoring ? "Putting it back…" : "I can drive after all"}
+              onAction={restoring ? undefined : () => restoreDay(dayNotDriving.day)}
             />
           ) : null}
 

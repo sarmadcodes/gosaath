@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -43,6 +43,26 @@ export function MyCommute() {
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const needsDriver = week.find((d) => d.status === "noDriver");
+  // Your own days off, which only ever appear on your own commute. Separate
+  // from the banner above because the sentence and the action are different:
+  // one is "find cover", the other is "put it back".
+  const notDriving = week.find((d) => d.status === "notDriving");
+  const [restoring, setRestoring] = useState(false);
+
+  async function restoreDay(day: CommuteDay) {
+    if (!commute) return;
+    setRestoring(true);
+    try {
+      setWeek(await api.commuteWeek.setAvailable(commute.id, [day.day]));
+    } catch (error) {
+      Alert.alert(
+        "Could not put the day back",
+        error instanceof Error ? error.message : "Something went wrong. Try again.",
+      );
+    } finally {
+      setRestoring(false);
+    }
+  }
   const origin = commute ? areaName(commute.originAreaId) : "";
   const campusName = commute ? (campusById(commute.campusId)?.name ?? "") : "";
   const driver = members.find((m) => m.role === "driver");
@@ -179,6 +199,15 @@ export function MyCommute() {
             body="Your usual driver is unavailable. People from your campus travel a similar route."
             actionLabel="See who is going"
             onAction={() => router.push("/driver/replacement")}
+          />
+        ) : null}
+
+        {notDriving ? (
+          <AlertBanner
+            title={`You are not driving on ${notDriving.day}`}
+            body="Everyone riding with you has been told. You can put the day back on at any time."
+            actionLabel={restoring ? "Putting it back…" : "I can drive after all"}
+            onAction={restoring ? undefined : () => restoreDay(notDriving)}
           />
         ) : null}
 

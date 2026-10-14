@@ -243,6 +243,7 @@ export const seatRequests: SeatRequest[] = [
     seats: 1,
     contribution: 250,
     status: "pending",
+    matchingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
   },
   {
     id: "req-2",
@@ -259,6 +260,9 @@ export const seatRequests: SeatRequest[] = [
     seats: 1,
     contribution: 250,
     status: "pending",
+    // Fewer than the ride's days on purpose, so the screen that renders the
+    // overlap is exercised against a partial match rather than a full one.
+    matchingDays: ["Mon", "Wed", "Thu"],
   },
 ];
 

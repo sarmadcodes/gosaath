@@ -511,6 +511,8 @@ export const httpApi: Api = {
         days,
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
       }),
+    setAvailable: (commuteId, days) =>
+      authed("POST", `/commutes/${commuteId}/available`, { days }),
     replacements: (commuteId, day) =>
       authed("GET", `/commutes/${commuteId}/replacements${qs({ day })}`),
   },
