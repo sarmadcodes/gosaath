@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { router, usePathname } from "expo-router";
 
@@ -41,6 +42,11 @@ export function TabSwipe({ children }: { children: ReactNode }) {
     // Home makes the four tabs feel like a carousel with no edges, and you
     // lose track of where you are.
     if (next < 0 || next >= TABS.length) return;
+
+    // Confirms the swipe took, which matters more here than on a button:
+    // there is no pressed state on a gesture, so without it a swipe that
+    // lands and one that falls short feel identical until the screen changes.
+    void Haptics.selectionAsync();
 
     // navigate, not push: tabs are places, and pushing would build a back
     // stack of them that the hardware back button then walks through.

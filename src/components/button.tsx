@@ -1,3 +1,5 @@
+import * as Haptics from "expo-haptics";
+import { useCallback } from "react";
 import { ActivityIndicator, Pressable, View, ViewStyle } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Text } from "@/components/text";
@@ -47,6 +49,24 @@ export function Button({
     destructive: { bg: colors.error },
   };
 
+  /**
+   * Every button in the app taps back.
+   *
+   * Put here rather than at each call site so it cannot be forgotten on one
+   * screen and present on the next — inconsistent feedback reads as a bug in
+   * the ones that are missing it. Fired before `onPress` so it lands with the
+   * touch rather than after whatever the handler does.
+   *
+   * `selection` deliberately, not `impact`: this is a UI control responding,
+   * not something physical happening. Success and warning taps are reserved
+   * for outcomes, which is why saving a profile uses a different one.
+   */
+  const press = useCallback(() => {
+    if (!onPress) return;
+    void Haptics.selectionAsync();
+    onPress();
+  }, [onPress]);
+
   const surface = surfaces[variant];
   const tone = labelTones[variant];
   const inert = disabled || loading;
@@ -58,7 +78,7 @@ export function Button({
       accessibilityState={{ disabled: !!inert, busy: !!loading }}
       accessibilityLabel={label}
       disabled={inert}
-      onPress={onPress}
+      onPress={press}
       style={({ pressed }) => [
         styles.base,
         size === "compact" ? styles.compact : styles.regular,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { AppBar } from "@/components/app-bar";
@@ -14,6 +15,7 @@ import { Text } from "@/components/text";
 import { makeStyles, spacing } from "@/theme";
 import { SkeletonForm } from "@/components/skeleton";
 import { api } from "@/services";
+import { setCache } from "@/hooks/cache";
 import { uploadFile } from "@/services/upload";
 import { areas, areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
@@ -62,13 +64,21 @@ function ProfileEditForm({ me }: { me: User }) {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   async function pickPhoto() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
+    // No permission request. On iOS 14+ and modern Android the library
+    // picker runs outside the app and hands back only what was chosen, so
+    // nothing needs granting — asking first added a system dialog and an
+    // async round-trip before the sheet could even start opening, which is
+    // most of why it felt slow.
+    void Haptics.selectionAsync();
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
+      // Square and small, because the only place it is ever shown is a
+      // 80pt circle. A 12MP original would be uploaded, downscaled and
+      // thrown away.
       quality: 0.6,
+      exif: false,
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUrl(result.assets[0].uri);
@@ -85,14 +95,23 @@ function ProfileEditForm({ me }: { me: User }) {
       // A newly chosen photo is still a file on the phone. It has to reach
       // storage before the account can point at it, or the photo exists for
       // nobody but the person who picked it.
+      let updated = me;
+
       if (photoUrl && photoUrl !== me.photoUrl && !photoUrl.startsWith("http")) {
         const key = await uploadFile({ uri: photoUrl, kind: "photo" });
-        await api.me.setPhoto(key);
+        updated = await api.me.setPhoto(key);
       } else if (photoUrl === null && me.photoUrl) {
-        await api.me.setPhoto(null);
+        updated = await api.me.setPhoto(null);
       }
 
-      await api.me.update({ name: name.trim(), phone, areaId });
+      updated = await api.me.update({ name: name.trim(), phone, areaId });
+
+      // Written straight into the cache, so the profile screen behind this
+      // one already shows the new photo and name as the navigation finishes.
+      // Waiting for its own refetch meant going back to the old avatar for a
+      // moment, which reads as the save not having worked.
+      setCache("me", updated);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (error) {
       setSaveError(

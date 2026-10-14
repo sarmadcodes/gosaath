@@ -36,6 +36,7 @@ export function useCampuses(institutionId?: string) {
 
 export function useMe() {
   return useAsync(() => api.me.get(), [], {
+    key: "me",
     // The verified badge is decided by an admin, so it changes while the person
     // is doing nothing at all.
     liveOn: ["verification.updated", "account.suspended", "account.restored"],
@@ -44,6 +45,7 @@ export function useMe() {
 
 export function useCommute() {
   return useAsync(() => api.commutes.mine(), [], {
+    key: "commute",
     refetchOnFocus: true,
     liveOn: [
       "commute.updated",
@@ -60,6 +62,7 @@ export function useCommuteWeek(commuteId?: string) {
     () => (commuteId ? api.commuteWeek.week(commuteId) : Promise.resolve([])),
     [commuteId],
     {
+      key: `week:${commuteId ?? "none"}`,
       refetchOnFocus: true,
       liveOn: [
         "ride.confirmed",
@@ -81,6 +84,7 @@ export function useCommuteMembers(commuteId?: string) {
     () => (commuteId ? api.commuteWeek.members(commuteId) : Promise.resolve([])),
     [commuteId],
     {
+      key: `members:${commuteId ?? "none"}`,
       refetchOnFocus: true,
       // A cancelled acceptance removes somebody from the group, which this
       // list is exactly what shows.
@@ -97,6 +101,7 @@ export function useCommuteMembers(commuteId?: string) {
 
 export function useMatchSummary() {
   return useAsync(() => api.matches.summary(), [], {
+    key: "matches:summary",
     refetchOnFocus: true,
     liveOn: ["match.created", "match.updated", "match.removed"],
   });
@@ -104,6 +109,7 @@ export function useMatchSummary() {
 
 export function useMatches() {
   return useAsync(() => api.matches.list(), [], {
+    key: "matches",
     liveOn: ["match.created", "match.updated", "match.removed"],
   });
 }
@@ -113,7 +119,9 @@ export function useRideSearch(params: RideSearch) {
 }
 
 export function useNearbyRides(day?: Weekday) {
-  return useAsync(() => api.rides.nearby({ day }), [day]);
+  return useAsync(() => api.rides.nearby({ day }), [day], {
+    key: `rides:nearby:${day ?? "any"}`,
+  });
 }
 
 export function useRide(id?: string) {
@@ -123,6 +131,7 @@ export function useRide(id?: string) {
     {
       // Seats especially: somebody looking at a ride while its last seat goes
       // should see it go, not find out by being refused.
+      key: `ride:${id ?? "none"}`,
       liveOn: [
         "ride.updated",
         "ride.seatsChanged",
@@ -144,6 +153,7 @@ const REQUEST_EVENTS = [
 
 export function useIncomingRequests() {
   return useAsync(() => api.rides.incomingRequests(), [], {
+    key: "requests:incoming",
     refetchOnFocus: true,
     liveOn: [...REQUEST_EVENTS],
   });
@@ -151,6 +161,7 @@ export function useIncomingRequests() {
 
 export function useSentRequests() {
   return useAsync(() => api.rides.sentRequests(), [], {
+    key: "requests:sent",
     refetchOnFocus: true,
     liveOn: [...REQUEST_EVENTS],
   });
@@ -168,11 +179,15 @@ export function useReplacements(commuteId?: string, day?: Weekday) {
 }
 
 export function useVehicles() {
-  return useAsync(() => api.vehicles.list(), [], { refetchOnFocus: true });
+  return useAsync(() => api.vehicles.list(), [], {
+    key: "vehicles",
+    refetchOnFocus: true,
+  });
 }
 
 export function useNotifications() {
   return useAsync(() => api.notifications.list(), [], {
+    key: "notifications",
     refetchOnFocus: true,
     liveOn: ["notification.created", "notification.read"],
   });
@@ -180,6 +195,7 @@ export function useNotifications() {
 
 export function useBlocked() {
   return useAsync(() => api.safety.blocked(), [], {
+    key: "blocked",
     refetchOnFocus: true,
     // So blocking somebody on one device removes them from the list on
     // another. The blocked person is told nothing, here or anywhere.

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -69,14 +70,16 @@ export default function Register() {
       : undefined;
 
   async function pickPhoto() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
-
+    // No permission request — see the note in profile-edit. The picker runs
+    // outside the app and returns only what was chosen, so asking first only
+    // added a dialog and a round-trip before the sheet started opening.
+    void Haptics.selectionAsync();
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.6,
+      exif: false,
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUrl(result.assets[0].uri);
