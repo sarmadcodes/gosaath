@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Alert, Image, Pressable, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
 import { Text } from "@/components/text";
@@ -58,6 +58,11 @@ export function ImageUpload({
       if (!result.canceled && result.assets[0]) {
         onChange(result.assets[0].uri);
       }
+    } catch (error) {
+      Alert.alert(
+        "Could not use that image",
+        error instanceof Error ? error.message : "Try another one.",
+      );
     } finally {
       setBusy(false);
     }

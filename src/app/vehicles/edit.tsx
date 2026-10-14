@@ -9,6 +9,7 @@ import { Input } from "@/components/input";
 import { Screen } from "@/components/screen";
 import { SectionHeader } from "@/components/section-header";
 import { Sheet } from "@/components/sheet";
+import { Text } from "@/components/text";
 import { makeStyles, spacing } from "@/theme";
 import { api } from "@/services";
 import type { Vehicle, VehicleType } from "@/data/types";
@@ -26,6 +27,7 @@ export default function EditVehicle() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function EditVehicle() {
     setTouched(true);
     if (!valid) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await api.vehicles.save({
         id: existing?.id,
@@ -65,6 +68,15 @@ export default function EditVehicle() {
         imageUri,
       });
       router.back();
+    } catch (error) {
+      // A duplicate plate is the common one, and the server says so. Losing
+      // that message left the button spinning down with nothing changed and
+      // nothing explained.
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "We could not save this vehicle. Try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -82,13 +94,20 @@ export default function EditVehicle() {
       <AppBar title={existing ? `Edit your ${label}` : `Add your ${label}`} />
       <Screen
         footer={
-          <Button
-            label="Save"
-            block
-            loading={saving}
-            disabled={!valid}
-            onPress={save}
-          />
+          <>
+            {saveError ? (
+              <Text variant="bodySmall" tone="error" style={styles.saveError}>
+                {saveError}
+              </Text>
+            ) : null}
+            <Button
+              label="Save"
+              block
+              loading={saving}
+              disabled={!valid}
+              onPress={save}
+            />
+          </>
         }
         contentStyle={styles.content}
       >
@@ -201,6 +220,9 @@ const useStyles = makeStyles(() => ({
   content: {
     gap: spacing.lg,
     paddingTop: spacing.base,
+  },
+  saveError: {
+    marginBottom: spacing.sm,
   },
   section: {
     gap: spacing.md,

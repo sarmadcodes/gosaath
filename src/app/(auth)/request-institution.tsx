@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { AppBar } from "@/components/app-bar";
@@ -51,6 +51,14 @@ export default function RequestInstitution() {
         requestedByEmail: email.trim(),
       });
       setSent(true);
+    } catch (error) {
+      // Showing the success screen is driven by `sent`, so a swallowed
+      // failure here left the person on the form with no idea whether their
+      // university had been requested or not.
+      Alert.alert(
+        "Could not send that request",
+        error instanceof Error ? error.message : "Try again in a moment.",
+      );
     } finally {
       setSubmitting(false);
     }

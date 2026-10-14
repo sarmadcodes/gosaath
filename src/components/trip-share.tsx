@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Share, View } from "react-native";
+import { Alert, Share, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -41,6 +41,11 @@ export function TripShare({ rideId }: { rideId: string }) {
         message: `I am travelling with GoSaath. You can see this trip here: ${url}`,
       });
       reload();
+    } catch (error) {
+      Alert.alert(
+        "Could not share this trip",
+        error instanceof Error ? error.message : "Try again in a moment.",
+      );
     } finally {
       setBusy(false);
     }
@@ -51,6 +56,13 @@ export function TripShare({ rideId }: { rideId: string }) {
     try {
       await api.tripShare.revoke(rideId);
       reload();
+    } catch (error) {
+      // Worth saying out loud: somebody revoking a link usually wants it gone
+      // now, and silence here reads as "done" when it is not.
+      Alert.alert(
+        "Could not stop sharing",
+        error instanceof Error ? error.message : "Try again in a moment.",
+      );
     } finally {
       setBusy(false);
     }

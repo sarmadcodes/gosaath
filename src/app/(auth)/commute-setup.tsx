@@ -31,6 +31,7 @@ export default function CommuteSetup() {
     applyToAll(["Mon", "Tue", "Wed", "Thu", "Fri"], "7:30 AM", "5:30 PM"),
   );
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Seeded from the area given at registration, but changeable here: where you
   // set off from is a commute question, and the account answer is only a
@@ -46,12 +47,24 @@ export default function CommuteSetup() {
     ? (campusById(draft.campusId)?.name ?? "your campus")
     : "your campus";
 
+  // Offering needs a vehicle, a seat count and a contribution. Sign-up asks
+  // for none of those, so creating the commute as "offer" here was refused by
+  // the server every time — "Add a vehicle before offering seats" — and
+  // because the failure was never caught, the button simply stopped spinning
+  // and the person was stuck on this screen with no idea why.
+  //
+  // So it is created as "find", which is always valid, and anybody who chose
+  // to offer goes straight to the screen that collects a car and switches the
+  // mode. Abandoning there leaves a working commute rather than nothing.
+  const wantsToOffer = draft.intent === "offer" || draft.intent === "both";
+
   async function finish() {
     setSubmitting(true);
+    setError(null);
     try {
       update({ schedule });
       await api.commutes.create({
-        intent: draft.intent ?? "find",
+        intent: "find",
         institutionId: draft.institutionId!,
         campusId: draft.campusId!,
         originAreaId: origin?.areaId ?? draft.areaId!,
@@ -60,7 +73,13 @@ export default function CommuteSetup() {
         womenOnly: false,
       });
       reset();
-      router.replace("/commute/ready");
+      router.replace(wantsToOffer ? "/driver/offer" : "/commute/ready");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not save your commute. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -72,8 +91,13 @@ export default function CommuteSetup() {
       <Screen
         footer={
           <>
+            {error ? (
+              <Text variant="bodySmall" tone="error" style={styles.error}>
+                {error}
+              </Text>
+            ) : null}
             <Button
-              label="Finish"
+              label={wantsToOffer ? "Next: your car" : "Finish"}
               block
               loading={submitting}
               disabled={schedule.length === 0 || !origin}
@@ -161,5 +185,9 @@ const useStyles = makeStyles(() => ({
   },
   section: {
     gap: spacing.md,
+  },
+  // Sits above the button in the footer, where the tap that caused it was.
+  error: {
+    marginBottom: spacing.sm,
   },
 }));
