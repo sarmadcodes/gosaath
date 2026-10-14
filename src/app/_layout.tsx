@@ -27,6 +27,20 @@ import "@/services/realtime";
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * How long the splash is guaranteed to stay up.
+ *
+ * Fonts load in well under this on a warm start, so without a floor the
+ * splash appeared for a frame or two and the app looked like it had glitched
+ * rather than launched. A second is long enough to register as deliberate and
+ * short enough that nobody is waiting on it.
+ */
+const MIN_SPLASH_MS = 1000;
+const launchedAt = Date.now();
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Manrope_600SemiBold,
@@ -40,9 +54,12 @@ export default function RootLayout() {
     // Holding the native splash until the type ramp is available avoids a
     // flash of system font, which is the first thing that makes an app feel
     // unfinished.
-    if (fontsLoaded || fontError) {
-      await SplashScreen.hideAsync();
-    }
+    if (!fontsLoaded && !fontError) return;
+
+    // Measured from launch rather than from here, so a slow start is not
+    // punished with an extra second on top of the wait it already had.
+    await sleep(Math.max(0, MIN_SPLASH_MS - (Date.now() - launchedAt)));
+    await SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
