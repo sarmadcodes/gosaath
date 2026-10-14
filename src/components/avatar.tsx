@@ -1,4 +1,5 @@
 import { Image, View } from "react-native";
+import { useAuthedImage } from "@/hooks/use-authed-image";
 import { Feather } from "@expo/vector-icons";
 import { Text } from "@/components/text";
 import { makeStyles, radius, useColors } from "@/theme";
@@ -44,6 +45,9 @@ export function Avatar({
   const colors = useColors();
   const dimension = sizes[size];
   const glyph = initials(name);
+  // Photos come from an authenticated endpoint, so the URL alone is not
+  // enough to load one. Falls back to the initials until the token is ready.
+  const source = useAuthedImage(photoUrl);
 
   return (
     <View
@@ -67,9 +71,9 @@ export function Avatar({
         },
       ]}
     >
-      {photoUrl ? (
+      {source ? (
         <Image
-          source={{ uri: photoUrl }}
+          source={source}
           style={{ width: dimension, height: dimension }}
           accessibilityIgnoresInvertColors
         />
