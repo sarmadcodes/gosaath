@@ -375,7 +375,6 @@ export const httpApi: Api = {
     async register(input: RegisterInput) {
       return pub("POST", "/auth/register", {
         ...input,
-        photoUrl: input.photoUrl ?? undefined,
         institutionId: await out("institutions", input.institutionId),
         campusId: await out("campuses", input.campusId),
         areaId: await out("areas", input.areaId),
@@ -457,7 +456,6 @@ export const httpApi: Api = {
       const body: Record<string, unknown> = {};
       if (patch.name !== undefined) body["name"] = patch.name;
       if (patch.phone !== undefined) body["phone"] = patch.phone;
-      if (patch.photoUrl !== undefined) body["photoUrl"] = patch.photoUrl;
       if (patch.areaId !== undefined) body["areaId"] = await out("areas", patch.areaId);
       return userIn(await authed<User>("PATCH", "/me", body));
     },

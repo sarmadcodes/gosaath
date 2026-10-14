@@ -142,7 +142,8 @@ function makeUser(input: RegisterInput): User {
     name: input.name,
     email: input.email,
     phone: input.phone,
-    photoUrl: input.photoUrl ?? null,
+    // Set by the upload that follows verification, never by registration.
+    photoUrl: null,
     userType: input.userType,
     institutionId: input.institutionId,
     campusId: input.campusId,

@@ -7,6 +7,8 @@ import { Screen } from "@/components/screen";
 import { Text } from "@/components/text";
 import { makeStyles, radius, spacing, type } from "@/theme";
 import { api } from "@/services";
+import { uploadFile } from "@/services/upload";
+import { useSignup } from "@/state/signup";
 
 const LENGTH = 6;
 const RESEND_SECONDS = 45;
@@ -14,6 +16,7 @@ const RESEND_SECONDS = 45;
 export default function Otp() {
   const styles = useStyles();
   const { email } = useLocalSearchParams<{ email?: string }>();
+  const { draft, update } = useSignup();
   const [code, setCode] = useState("");
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +29,25 @@ export default function Otp() {
     setError(null);
     try {
       await api.auth.verifyEmailOtp(email, code);
+
+      // The photo picked during sign-up is a file on this phone, and this is
+      // the first moment there is a session to upload it with. Previously it
+      // was sent to register() as a `file://` path, stored verbatim, and
+      // resolved to nothing — so every account that added a photo at sign-up
+      // had a broken one.
+      //
+      // Deliberately not allowed to fail the verification. The account is
+      // already live; losing the photo is a nuisance they can fix from their
+      // profile, whereas an error here looks like the code was wrong.
+      if (draft.photoUrl) {
+        try {
+          const key = await uploadFile({ uri: draft.photoUrl, kind: "photo" });
+          await api.me.setPhoto(key);
+        } catch {
+          update({ photoUrl: null });
+        }
+      }
+
       // Account is live from here. The remaining two steps shape the commute
       // rather than the account, so they sit after verification.
       router.replace("/(auth)/intent");

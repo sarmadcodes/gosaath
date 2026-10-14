@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ImageURISource } from "react-native";
-import { currentAccessToken, onSessionChange } from "@/services/http";
+import { BASE_URL, currentAccessToken, onSessionChange } from "@/services/http";
 
 /**
  * An image source that can actually load a photo from our own API.
@@ -20,14 +20,26 @@ import { currentAccessToken, onSessionChange } from "@/services/http";
  *
  * Anything that is not one of our photo URLs — a local `file://` preview from
  * the image picker, or a photo uploaded before object storage existed and
- * stored as a plain URL — is passed straight through.
+ * stored as a plain URL — is passed straight through, with no token attached.
  */
 
-/** Matched on the path, not the host, so it survives a domain change. */
-const PHOTO_PATH = "/api/v1/photos/";
+/**
+ * Our own photo endpoint, origin included.
+ *
+ * The origin is not optional. `photoUrl` is a stored field that a member can
+ * set to any URL, and the server passes an absolute one straight through —
+ * so matching on the path alone would let somebody set their photo to
+ * `https://evil.example/api/v1/photos/x` and collect an access token from
+ * every member whose app rendered their avatar.
+ *
+ * A prefix match on the whole thing pins the authority: everything between
+ * the scheme and the first slash has to be exactly our host, because the
+ * slash that follows it is part of the prefix.
+ */
+const PHOTO_PREFIX = `${BASE_URL}/api/v1/photos/`;
 
 export function useAuthedImage(url?: string | null): ImageURISource | undefined {
-  const needsAuth = Boolean(url && url.includes(PHOTO_PATH));
+  const needsAuth = Boolean(url && url.startsWith(PHOTO_PREFIX));
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {

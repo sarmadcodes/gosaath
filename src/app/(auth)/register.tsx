@@ -93,12 +93,14 @@ export default function Register() {
       const areaId = areas.find((a) => a.name === area)?.id ?? "";
       update({ name, email, password, phone, photoUrl, areaId });
 
+      // The photo is not sent here. It is still a file on this phone, and
+      // there is no session yet to upload it with — it goes up straight
+      // after the code is confirmed, from the draft.
       await api.auth.register({
         name,
         email,
         password,
         phone,
-        photoUrl,
         userType: draft.userType!,
         institutionId: draft.institutionId!,
         campusId: draft.campusId!,
