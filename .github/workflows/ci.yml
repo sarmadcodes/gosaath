@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gosaath
+
+      # The backend repo may be private, in which case GITHUB_TOKEN cannot
+      # read it; add a read-only token as GOSAATH_REPO_TOKEN.
+      - uses: actions/checkout@v4
+        with:
+          repository: sarmadcodes/gosaath-backend
+          ref: main
+          path: gosaath-backend
+          token: ${{ secrets.GOSAATH_REPO_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The checker uses only Node built-ins, so the backend needs no install.
+      # Fails if this branch changed a contract file the backend has not
+      # re-synced.
+      - name: Contract matches the backend's vendored copy
+        working-directory: gosaath-backend
+        env:
+          GOSAATH_APP_DIR: ${{ github.workspace }}/gosaath
+        run: node --experimental-strip-types scripts/contract.ts check
