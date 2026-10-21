@@ -9,6 +9,7 @@ import {
 import type {
   CommuteIntent,
   DaySchedule,
+  Gender,
   InstitutionType,
   UserType,
 } from "@/data/types";
@@ -30,6 +31,7 @@ export type SignupDraft = {
   phone?: string;
   photoUrl?: string | null;
   areaId?: string;
+  gender?: Gender;
 
   intent?: CommuteIntent;
   schedule?: DaySchedule[];

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -18,7 +17,7 @@ import { EmptyState } from "@/components/empty-state";
 import { TimePicker } from "@/components/time-picker";
 import { SkeletonForm } from "@/components/skeleton";
 import { RoutePreviewCard } from "@/components/location";
-import { useMe, useNearbyRides } from "@/hooks/data";
+import { useMe, useNearbyRides, useWomenOnlyAvailable } from "@/hooks/data";
 import { makeStyles, spacing, useColors } from "@/theme";
 import { areas, areaName } from "@/data/areas";
 import { campusById } from "@/data/institutions";
@@ -65,6 +64,7 @@ export default function FindRide() {
  */
 function FindRideForm({ me }: { me: User }) {
   const styles = useStyles();
+  const womenOnlyAvailable = useWomenOnlyAvailable();
   const colors = useColors();
 
   const [from, setFrom] = useState(areaName(me.areaId));
@@ -92,7 +92,7 @@ function FindRideForm({ me }: { me: User }) {
         day,
         time,
         direction,
-        womenOnly: womenOnly ? "1" : "0",
+        womenOnly: womenOnlyAvailable && womenOnly ? "1" : "0",
         carsOnly: carsOnly ? "1" : "0",
       },
     });
@@ -158,7 +158,7 @@ function FindRideForm({ me }: { me: User }) {
           <View style={styles.section}>
             <SectionHeader title="Narrow it down" />
             <Card padding="none">
-              {WOMEN_ONLY_ENABLED ? (
+              {womenOnlyAvailable ? (
                 <ToggleRow
                   label="Women only"
                   caption="Match with women drivers and passengers"
