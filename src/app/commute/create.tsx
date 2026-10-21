@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
-import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -16,7 +15,7 @@ import { ToggleRow } from "@/components/toggle-row";
 import { SkeletonForm } from "@/components/skeleton";
 import { LocationSearch } from "@/components/location";
 import { SelectedLocation } from "@/components/location";
-import { useCommute, useMe } from "@/hooks/data";
+import { useCommute, useMe, useWomenOnlyAvailable } from "@/hooks/data";
 import { makeStyles, radius, spacing, useColors } from "@/theme";
 import { api } from "@/services";
 import { areas } from "@/data/areas";
@@ -77,6 +76,7 @@ function CreateCommuteForm({
   commute: Commute | null;
 }) {
   const styles = useStyles();
+  const womenOnlyAvailable = useWomenOnlyAvailable();
   const colors = useColors();
 
   const editing = commute !== null;
@@ -149,7 +149,7 @@ function CreateCommuteForm({
           originAreaId: origin.areaId,
           schedule,
           direction,
-          womenOnly,
+          womenOnly: womenOnlyAvailable && womenOnly,
         });
         router.back();
       } else {
@@ -165,7 +165,7 @@ function CreateCommuteForm({
           originAreaId: origin.areaId,
           schedule,
           direction,
-          womenOnly,
+          womenOnly: womenOnlyAvailable && womenOnly,
         });
         router.replace("/commute/ready");
       }
@@ -322,7 +322,7 @@ function CreateCommuteForm({
             </Card>
           </View>
 
-          {WOMEN_ONLY_ENABLED ? (
+          {womenOnlyAvailable ? (
             <View style={styles.section}>
               <SectionHeader title="Preferences" />
               <Card padding="none">

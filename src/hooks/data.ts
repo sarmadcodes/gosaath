@@ -2,6 +2,7 @@ import { useAsync } from "@/hooks/use-async";
 import { api } from "@/services";
 import type { RideSearch } from "@/services";
 import type { InstitutionType, Weekday } from "@/data/types";
+import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 
 /**
  * Domain hooks. Screens use these rather than calling `api` directly, so the
@@ -41,6 +42,16 @@ export function useMe() {
     // is doing nothing at all.
     liveOn: ["verification.updated", "account.suspended", "account.restored"],
   });
+}
+
+/**
+ * Whether this person may create, see and join women-only rides: the
+ * feature is on and they have declared themselves a woman. The server
+ * enforces the same rule; this only decides which controls to draw.
+ */
+export function useWomenOnlyAvailable(): boolean {
+  const { data: me } = useMe();
+  return WOMEN_ONLY_ENABLED && me?.gender === "woman";
 }
 
 export function useCommute() {

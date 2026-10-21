@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -14,7 +13,7 @@ import { Segmented } from "@/components/segmented";
 import { Text } from "@/components/text";
 import { ToggleRow } from "@/components/toggle-row";
 import { SkeletonForm } from "@/components/skeleton";
-import { useCommute, useMatches, useMe, useVehicles } from "@/hooks/data";
+import { useCommute, useMatches, useMe, useVehicles, useWomenOnlyAvailable } from "@/hooks/data";
 import { api } from "@/services";
 import type { Commute, CommuteMatch, User, Vehicle } from "@/data/types";
 import { makeStyles, spacing } from "@/theme";
@@ -100,6 +99,7 @@ function OfferSeatsForm({
   match?: CommuteMatch;
 }) {
   const styles = useStyles();
+  const womenOnlyAvailable = useWomenOnlyAvailable();
 
   const current = vehicles.find((v) => v.id === commute?.vehicleId) ?? vehicles[0];
   const [vehicleType, setVehicleType] = useState<VehicleType>(current?.type ?? "car");
@@ -155,7 +155,9 @@ function OfferSeatsForm({
       vehicleId: vehicle?.id,
       seatsOffered: Number(seats) || 1,
       contribution: Number(contribution) || 0,
-      womenOnly,
+      // Only a declared woman can set this; anybody else sends false, so an
+      // old flag never blocks saving.
+      womenOnly: womenOnlyAvailable && womenOnly,
     };
 
     try {
@@ -324,7 +326,7 @@ function OfferSeatsForm({
           </Card>
         </View>
 
-        {WOMEN_ONLY_ENABLED ? (
+        {womenOnlyAvailable ? (
           <View style={styles.section}>
             <SectionHeader title="Who can join" />
             <Card padding="none">

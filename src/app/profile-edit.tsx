@@ -20,7 +20,8 @@ import { uploadFile } from "@/services/upload";
 import { areas, areaName } from "@/data/areas";
 import { communityLabel } from "@/data/institutions";
 import { useMe } from "@/hooks/data";
-import type { User } from "@/data/types";
+import type { Gender, User } from "@/data/types";
+import { GenderField } from "@/components/gender-field";
 
 /**
  * The form seeds its fields from the loaded account, so it is only mounted
@@ -54,6 +55,7 @@ function ProfileEditForm({ me }: { me: User }) {
     me.photoUrl ?? null,
   );
   const [area, setArea] = useState(areaName(me.areaId));
+  const [gender, setGender] = useState<Gender>(me.gender ?? "undisclosed");
   const [areaOpen, setAreaOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -104,7 +106,7 @@ function ProfileEditForm({ me }: { me: User }) {
         updated = await api.me.setPhoto(null);
       }
 
-      updated = await api.me.update({ name: name.trim(), phone, areaId });
+      updated = await api.me.update({ name: name.trim(), phone, areaId, gender });
 
       // Written straight into the cache, so the profile screen behind this
       // one already shows the new photo and name as the navigation finishes.
@@ -192,6 +194,7 @@ function ProfileEditForm({ me }: { me: User }) {
               hint="Your area only. Your exact address is never asked for."
               onPressField={() => setAreaOpen(true)}
             />
+            <GenderField value={gender} onChange={setGender} />
           </View>
         </Card>
 

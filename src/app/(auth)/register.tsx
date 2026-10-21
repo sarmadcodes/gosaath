@@ -9,11 +9,13 @@ import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { Input } from "@/components/input";
+import { GenderField } from "@/components/gender-field";
 import { OptionSheet } from "@/components/option-sheet";
 import { Screen } from "@/components/screen";
 import { Text } from "@/components/text";
 import { makeStyles, spacing, useColors } from "@/theme";
 import { areas } from "@/data/areas";
+import type { Gender } from "@/data/types";
 import { campusById, institutionById } from "@/data/institutions";
 import { api } from "@/services";
 import { ApiError } from "@/services/http";
@@ -35,6 +37,7 @@ export default function Register() {
   const [phone, setPhone] = useState(draft.phone ?? "");
   const [photoUrl, setPhotoUrl] = useState<string | null>(draft.photoUrl ?? null);
   const [area, setArea] = useState(draft.areaId ?? "");
+  const [gender, setGender] = useState<Gender>(draft.gender ?? "undisclosed");
   const [areaOpen, setAreaOpen] = useState(false);
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -94,7 +97,7 @@ export default function Register() {
     setServerError(null);
     try {
       const areaId = areas.find((a) => a.name === area)?.id ?? "";
-      update({ name, email, password, phone, photoUrl, areaId });
+      update({ name, email, password, phone, photoUrl, areaId, gender });
 
       // The photo is not sent here. It is still a file on this phone, and
       // there is no session yet to upload it with — it goes up straight
@@ -108,6 +111,7 @@ export default function Register() {
         institutionId: draft.institutionId!,
         campusId: draft.campusId!,
         areaId,
+        gender,
       });
 
       router.push({ pathname: "/(auth)/otp", params: { email } });
@@ -253,6 +257,7 @@ export default function Register() {
               hint="Your area only. Your exact address is never asked for."
               onPressField={() => setAreaOpen(true)}
             />
+            <GenderField value={gender} onChange={setGender} />
           </View>
         </Card>
 

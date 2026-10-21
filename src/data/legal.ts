@@ -25,7 +25,7 @@ export type LegalDocument = {
   sections: LegalSection[];
 };
 
-export const LAST_UPDATED = "September 2026";
+export const LAST_UPDATED = "October 2026";
 
 export const TERMS: LegalDocument = {
   title: "Terms of service",
@@ -135,13 +135,14 @@ export const PRIVACY: LegalDocument = {
         "Your commute: the days you travel and your campus times",
         "Your vehicle details, if you offer seats",
         "An optional profile photo, and an optional ID document if you apply for the verified badge",
+        "Your gender, only if you choose to tell us",
       ],
     },
     {
       heading: "What other people can see",
       body: [
         "Other commuters see a deliberately small amount about you: your first name, your photo if you added one, whether you hold the verified badge, and the general area you travel from.",
-        "They never see your full name, your email, your exact location, or anything about your other matches.",
+        "They never see your full name, your email, your gender, your exact location, or anything about your other matches. If you offer a women-only ride, others see only that the ride is women-only.",
         "Your mobile number becomes visible to someone only once you are matched with them, so you can arrange the practical details. Nobody outside your matches can see it.",
       ],
     },
@@ -149,13 +150,14 @@ export const PRIVACY: LegalDocument = {
       heading: "Why we hold it",
       body: [
         "Your institution email confirms you belong to the community you are matched within. Your commute and area are what matching compares. Your number lets a match reach you.",
+        "Your gender, if you give it, is used for one thing: women-only rides. Only members who have said they are women can offer, see or join them. You can change or remove it in your profile at any time.",
         "We do not sell your information, and we do not use it for advertising.",
       ],
     },
     {
       heading: "Your institution",
       body: [
-        "Administrators at your own institution can see accounts belonging to that institution in order to run it there — for example to review verified badges or act on a report.",
+        "Administrators at your own institution can see accounts belonging to that institution in order to run it there — for example to review verified badges or act on a report. They can see and correct the gender you gave, because it decides who may join women-only rides; each correction is recorded.",
         "They cannot see accounts at any other institution, and they cannot see your messages, because GoSaath has none.",
       ],
     },
@@ -179,7 +181,7 @@ export const PRIVACY: LegalDocument = {
       points: [
         "Change or pause your commute at any time",
         "Hide your area until a seat is confirmed, in Settings",
-        "Limit matching to women only, in Commute preferences",
+        "Offer or look for women-only rides, if you have said you are a woman",
         "Block anyone, at any time, without telling them",
         "Delete your account and everything attached to it",
       ],

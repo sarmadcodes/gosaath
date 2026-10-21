@@ -149,6 +149,7 @@ function makeUser(input: RegisterInput): User {
     campusId: input.campusId,
     areaId: input.areaId,
     badgeStatus: "none",
+    gender: input.gender ?? "undisclosed",
     additionalInstitutionIds: [],
   };
 }

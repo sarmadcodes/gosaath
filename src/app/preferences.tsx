@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { WOMEN_ONLY_ENABLED } from "@/data/flags";
 import { AppBar } from "@/components/app-bar";
 import { Card } from "@/components/card";
 import { Input } from "@/components/input";
@@ -13,7 +12,7 @@ import { SkeletonForm } from "@/components/skeleton";
 import { makeStyles, spacing } from "@/theme";
 import { api } from "@/services";
 import type { MatchPreferences } from "@/services";
-import { usePreferences } from "@/hooks/data";
+import { usePreferences, useWomenOnlyAvailable } from "@/hooks/data";
 
 const RADIUS_OPTIONS = [
   "Same area only",
@@ -30,6 +29,7 @@ const TIME_WINDOWS = [
 
 export default function Preferences() {
   const styles = useStyles();
+  const womenOnlyAvailable = useWomenOnlyAvailable();
   const { data: prefs, set } = usePreferences();
   const [picker, setPicker] = useState<"radius" | "window" | null>(null);
 
@@ -67,7 +67,7 @@ export default function Preferences() {
         <View style={styles.section}>
           <SectionHeader title="Finding a ride" />
           <Card padding="none">
-            {WOMEN_ONLY_ENABLED ? (
+            {womenOnlyAvailable ? (
               <ToggleRow
                 label="Women only"
                 caption="Match with women drivers and passengers"
@@ -122,7 +122,7 @@ export default function Preferences() {
         <View style={styles.section}>
           <SectionHeader title="Offering seats" />
           <Card padding="none">
-            {WOMEN_ONLY_ENABLED ? (
+            {womenOnlyAvailable ? (
               <ToggleRow
                 label="Women passengers only"
                 caption="Only women can request a seat from you"
