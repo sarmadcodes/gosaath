@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -34,12 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           path: gosaath
 
       # The backend repo may be private, in which case GITHUB_TOKEN cannot
       # read it; add a read-only token as GOSAATH_REPO_TOKEN.
       - uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: sarmadcodes/gosaath-backend
           ref: main
           path: gosaath-backend
